@@ -1,0 +1,2 @@
+// tenant model placeholder
+export {};

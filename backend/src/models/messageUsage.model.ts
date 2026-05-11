@@ -1,0 +1,2 @@
+// messageUsage model placeholder
+export {};

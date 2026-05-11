@@ -1,0 +1,2 @@
+// trip model placeholder
+export {};

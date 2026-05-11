@@ -1,0 +1,2 @@
+// auditLog model placeholder
+export {};

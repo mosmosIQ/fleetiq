@@ -1,0 +1,1 @@
+export interface SubscriptionPlan { id: string; name: 'STANDARD' | 'PREMIUM'; truck_limit: number; driver_limit: number; company_admin_limit: number; sms_monthly_limit: number; whatsapp_monthly_limit: number; }

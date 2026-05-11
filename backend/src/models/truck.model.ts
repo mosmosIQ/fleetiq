@@ -1,0 +1,2 @@
+// truck model placeholder
+export {};

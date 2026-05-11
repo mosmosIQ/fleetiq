@@ -1,0 +1,2 @@
+// document model placeholder
+export {};
