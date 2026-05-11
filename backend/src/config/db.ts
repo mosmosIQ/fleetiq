@@ -1,15 +1,16 @@
 import { Pool } from "pg";
 import { env } from "./env";
 
-export const db = new Pool({
-  host: env.DB_HOST,
-  port: env.DB_PORT,
-  user: env.DB_USER,
-  password: env.DB_PASSWORD,
-  database: env.DB_NAME
-});
+const shouldUseSsl =
+  env.NODE_ENV === "production" ||
+  env.DATABASE_URL.includes("sslmode=require") ||
+  env.DATABASE_URL.includes("neon.tech");
 
-export async function testDatabaseConnection() {
-  const result = await db.query("SELECT NOW()");
-  return result.rows[0];
-}
+export const db = new Pool({
+  connectionString: env.DATABASE_URL,
+  ssl: shouldUseSsl
+    ? {
+        rejectUnauthorized: false
+      }
+    : undefined
+});
