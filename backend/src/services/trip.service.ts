@@ -21,6 +21,10 @@ function mapTripStatusToTruckStatus(status: string) {
   return status;
 }
 
+function formatStatusLabel(status: string) {
+  return status.replace(/_/g, " ");
+}
+
 function getAllowedManualStatuses(currentStatus: string) {
   const transitions: Record<string, string[]> = {
     ASSIGNED: ["STARTED", "DELAYED", "BREAKDOWN"],
@@ -405,7 +409,7 @@ export async function updateTripStatus(
           newStatus === "DELAYED"
             ? "Trip marked as delayed"
             : "Trip marked as breakdown",
-          `Trip ${trip.public_trip_code} was manually updated to ${newStatus.replaceAll("_", " ")} by Company Admin.`,
+          `Trip ${trip.public_trip_code} was manually updated to ${formatStatusLabel(newStatus)} by Company Admin.`,
           newStatus
         ]
       );

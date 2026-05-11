@@ -19,6 +19,10 @@ function mapTripStatusToTruckStatus(status: string) {
   return status;
 }
 
+function formatStatusLabel(status: string) {
+  return status.replace(/_/g, " ");
+}
+
 export async function sendSms(
   tenantId: string,
   phoneNumber: string,
@@ -337,7 +341,9 @@ export async function handleInboundSms(input: {
           nextStatus === "DELAYED"
             ? "Driver reported delay"
             : "Driver reported breakdown",
-          `Driver ${trip.driver_name} updated trip ${trip.public_trip_code} to ${nextStatus.replaceAll("_", " ")} by SMS.`,
+          `Driver ${trip.driver_name} updated trip ${
+            trip.public_trip_code
+          } to ${formatStatusLabel(nextStatus)} by SMS.`,
           nextStatus
         ]
       );
@@ -351,8 +357,10 @@ export async function handleInboundSms(input: {
     );
 
     const confirmation = options
-      ? `${trip.public_trip_code} marked as ${nextStatus.replaceAll("_", " ")}.\n\nNext reply:\n${options}`
-      : `${trip.public_trip_code} marked as ${nextStatus.replaceAll("_", " ")}.`;
+      ? `${trip.public_trip_code} marked as ${formatStatusLabel(
+          nextStatus
+        )}.\n\nNext reply:\n${options}`
+      : `${trip.public_trip_code} marked as ${formatStatusLabel(nextStatus)}.`;
 
     try {
       await sendSms(trip.tenant_id, phone, confirmation);
