@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import {
   createTruck,
@@ -8,8 +9,12 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { requireTenant } from "../middleware/tenant.middleware";
 import { validateBody } from "../middleware/validate.middleware";
-import { createTruckSchema } from "../validators/truck.validator";
 import { requireActiveTenant } from "../middleware/subscription.middleware";
+import {
+  createTruckSchema,
+  updateTruckStatusSchema
+} from "../validators/truck.validator";
+
 const router = Router();
 
 router.use(
@@ -20,7 +25,17 @@ router.use(
 );
 
 router.get("/", listTrucks);
-router.post("/", validateBody(createTruckSchema), createTruck);
-router.patch("/:id/status", updateTruckStatus);
+
+router.post(
+  "/",
+  validateBody(createTruckSchema),
+  createTruck
+);
+
+router.patch(
+  "/:id/status",
+  validateBody(updateTruckStatusSchema),
+  updateTruckStatus
+);
 
 export default router;

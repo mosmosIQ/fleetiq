@@ -1,3 +1,4 @@
+
 import { db } from "../config/db";
 import { ensureCanAddTruck } from "./subscription.service";
 
@@ -9,6 +10,30 @@ const ACTIVE_TRIP_STATUSES = [
   "BREAKDOWN",
   "ARRIVED"
 ];
+
+const MANAGEABLE_TRUCK_STATUSES = [
+  "AVAILABLE",
+  "UNDER_MAINTENANCE",
+  "ACCIDENTED",
+  "INACTIVE"
+] as const;
+
+type ManageableTruckStatus =
+  (typeof MANAGEABLE_TRUCK_STATUSES)[number];
+
+function validateManageableStatus(
+  status: string
+): asserts status is ManageableTruckStatus {
+  if (
+    !MANAGEABLE_TRUCK_STATUSES.includes(
+      status as ManageableTruckStatus
+    )
+  ) {
+    throw new Error(
+      "Invalid truck status. Choose Available, Under Maintenance, Accidented, or Inactive."
+    );
+  }
+}
 
 export async function listTrucks(tenantId: string) {
   const result = await db.query(
@@ -24,7 +49,10 @@ export async function listTrucks(tenantId: string) {
       END AS can_change_status
     FROM trucks tr
     LEFT JOIN LATERAL (
-      SELECT t.id, t.public_trip_code, t.status
+      SELECT
+        t.id,
+        t.public_trip_code,
+        t.status
       FROM trips t
       WHERE t.truck_id = tr.id
         AND t.tenant_id = tr.tenant_id
@@ -50,18 +78,36 @@ export async function createTruck(
     status?: string;
   }
 ) {
+  const plateNumber = input.plate_number?.trim().toUpperCase();
+
+  if (!plateNumber || plateNumber.length < 2) {
+    throw new Error("A valid truck plate number is required.");
+  }
+
+  const status = input.status ?? "AVAILABLE";
+  validateManageableStatus(status);
+
+  // Preserve the existing subscription/truck-limit check.
   await ensureCanAddTruck(tenantId);
-  
+
   const result = await db.query(
-    `INSERT INTO trucks (tenant_id, plate_number, truck_type, capacity, status)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
+    `
+    INSERT INTO trucks (
+      tenant_id,
+      plate_number,
+      truck_type,
+      capacity,
+      status
+    )
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *
+    `,
     [
       tenantId,
-      input.plate_number,
-      input.truck_type,
-      input.capacity,
-      input.status ?? "AVAILABLE"
+      plateNumber,
+      input.truck_type?.trim() || null,
+      input.capacity?.trim() || null,
+      status
     ]
   );
 
@@ -73,11 +119,7 @@ export async function updateTruckStatus(
   truckId: string,
   status: string
 ) {
-  const allowedStatuses = ["AVAILABLE", "UNDER_MAINTENANCE", "INACTIVE"];
-
-  if (!allowedStatuses.includes(status)) {
-    throw new Error("Invalid truck status");
-  }
+  validateManageableStatus(status);
 
   const truckResult = await db.query(
     `
@@ -88,7 +130,9 @@ export async function updateTruckStatus(
       active_trip.public_trip_code AS active_trip_code
     FROM trucks tr
     LEFT JOIN LATERAL (
-      SELECT t.id, t.public_trip_code
+      SELECT
+        t.id,
+        t.public_trip_code
       FROM trips t
       WHERE t.truck_id = tr.id
         AND t.tenant_id = tr.tenant_id
@@ -106,7 +150,7 @@ export async function updateTruckStatus(
   const truck = truckResult.rows[0];
 
   if (!truck) {
-    throw new Error("Truck not found");
+    throw new Error("Truck not found.");
   }
 
   if (truck.active_trip_id) {
@@ -115,18 +159,26 @@ export async function updateTruckStatus(
     );
   }
 
+  if (truck.status === status) {
+    return truck;
+  }
+
   const result = await db.query(
-    `UPDATE trucks
-     SET status = $1,
-         updated_at = NOW()
-     WHERE id = $2
-       AND tenant_id = $3
-     RETURNING *`,
+    `
+    UPDATE trucks
+    SET
+      status = $1,
+      updated_at = NOW()
+    WHERE id = $2
+      AND tenant_id = $3
+    RETURNING *
+    `,
     [status, truckId, tenantId]
   );
 
   await db.query(
-    `INSERT INTO status_logs (
+    `
+    INSERT INTO status_logs (
       tenant_id,
       truck_id,
       old_status,
@@ -139,7 +191,8 @@ export async function updateTruckStatus(
       $3,
       $4,
       'COMPANY_ADMIN'
-    )`,
+    )
+    `,
     [tenantId, truckId, truck.status, status]
   );
 

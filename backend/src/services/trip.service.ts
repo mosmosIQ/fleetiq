@@ -44,29 +44,60 @@ export async function listTrips(tenantId: string) {
     `
     SELECT
       t.*,
+
       tr.plate_number,
       tr.truck_type,
       tr.status AS truck_status,
+
       d.full_name AS driver_name,
       d.phone_number AS driver_phone,
+
+      tl.trailer_number,
+      tl.trailer_type,
+      tl.status AS trailer_status,
+
+      b.batch_number,
+      b.direction AS batch_direction,
+      b.loading_point,
+      b.truck_handover_date,
+      b.loading_date,
+      b.tons,
+      b.release_date,
+
       latest_update.source AS last_update_source,
       latest_update.created_at AS last_update_at
+
     FROM trips t
+
     JOIN trucks tr
       ON tr.id = t.truck_id
      AND tr.tenant_id = t.tenant_id
+
     JOIN drivers d
       ON d.id = t.driver_id
      AND d.tenant_id = t.tenant_id
+
+    LEFT JOIN trailers tl
+      ON tl.id = t.trailer_id
+     AND tl.tenant_id = t.tenant_id
+
+    LEFT JOIN trip_batches b
+      ON b.id = t.batch_id
+     AND b.tenant_id = t.tenant_id
+
     LEFT JOIN LATERAL (
-      SELECT tu.source, tu.created_at
+      SELECT
+        tu.source,
+        tu.created_at
       FROM trip_updates tu
       WHERE tu.trip_id = t.id
         AND tu.tenant_id = t.tenant_id
       ORDER BY tu.created_at DESC
       LIMIT 1
     ) latest_update ON true
+
     WHERE t.tenant_id = $1::uuid
+
     ORDER BY t.created_at DESC
     `,
     [tenantId]
@@ -80,8 +111,11 @@ export async function createTrip(
   input: {
     truck_id: string;
     driver_id: string;
+    trailer_id?: string;
+    batch_id?: string;
     route_from: string;
     route_to: string;
+    destination_country: "DRC" | "ZAMBIA";
     cargo_description?: string;
     planned_start_at?: string;
     expected_arrival_at?: string;
@@ -92,9 +126,16 @@ export async function createTrip(
   try {
     await client.query("BEGIN");
 
+    // --------------------------------------------------
+    // 1. CHECK TRUCK
+    // --------------------------------------------------
+
     const truckResult = await client.query(
       `
-      SELECT id, plate_number, status
+      SELECT
+        id,
+        plate_number,
+        status
       FROM trucks
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
@@ -110,12 +151,22 @@ export async function createTrip(
     }
 
     if (truck.status !== "AVAILABLE") {
-      throw new Error("Only available trucks can be assigned to a new trip");
+      throw new Error(
+        "Only available trucks can be assigned to a new trip"
+      );
     }
+
+    // --------------------------------------------------
+    // 2. CHECK DRIVER
+    // --------------------------------------------------
 
     const driverResult = await client.query(
       `
-      SELECT id, full_name, phone_number, is_active
+      SELECT
+        id,
+        full_name,
+        phone_number,
+        is_active
       FROM drivers
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
@@ -131,22 +182,36 @@ export async function createTrip(
     }
 
     if (!driver.is_active) {
-      throw new Error("Only active drivers can be assigned to a trip");
+      throw new Error(
+        "Only active drivers can be assigned to a trip"
+      );
     }
+
+    // --------------------------------------------------
+    // 3. CHECK DRIVER DOES NOT HAVE AN ACTIVE TRIP
+    // --------------------------------------------------
 
     const activeDriverTripResult = await client.query(
       `
-      SELECT id, public_trip_code, status
+      SELECT
+        id,
+        public_trip_code,
+        status
       FROM trips
       WHERE tenant_id = $1::uuid
         AND driver_id = $2::uuid
         AND status = ANY($3::varchar[])
       LIMIT 1
       `,
-      [tenantId, input.driver_id, ACTIVE_TRIP_STATUSES]
+      [
+        tenantId,
+        input.driver_id,
+        ACTIVE_TRIP_STATUSES
+      ]
     );
 
-    const activeDriverTrip = activeDriverTripResult.rows[0];
+    const activeDriverTrip =
+      activeDriverTripResult.rows[0];
 
     if (activeDriverTrip) {
       throw new Error(
@@ -154,7 +219,108 @@ export async function createTrip(
       );
     }
 
-    const code = await generateNextTripCode(tenantId);
+    // --------------------------------------------------
+    // 4. CHECK TRAILER
+    // --------------------------------------------------
+
+    if (input.trailer_id) {
+      const trailerResult = await client.query(
+        `
+        SELECT
+          id,
+          trailer_number,
+          status
+        FROM trailers
+        WHERE id = $1::uuid
+          AND tenant_id = $2::uuid
+        LIMIT 1
+        `,
+        [
+          input.trailer_id,
+          tenantId
+        ]
+      );
+
+      const trailer = trailerResult.rows[0];
+
+      if (!trailer) {
+        throw new Error("Trailer not found");
+      }
+
+      if (trailer.status !== "AVAILABLE") {
+        throw new Error(
+          "Only available trailers can be assigned to a new trip"
+        );
+      }
+    }
+
+    // --------------------------------------------------
+    // 5. CHECK BATCH
+    // --------------------------------------------------
+
+    if (input.batch_id) {
+      const batchResult = await client.query(
+        `
+        SELECT
+          id,
+          batch_number,
+          direction
+        FROM trip_batches
+        WHERE id = $1::uuid
+          AND tenant_id = $2::uuid
+        LIMIT 1
+        `,
+        [
+          input.batch_id,
+          tenantId
+        ]
+      );
+
+      const batch = batchResult.rows[0];
+
+      if (!batch) {
+        throw new Error("Batch not found");
+      }
+
+      // A batch should only belong to one trip.
+      const existingBatchTripResult =
+        await client.query(
+          `
+          SELECT
+            id,
+            public_trip_code
+          FROM trips
+          WHERE batch_id = $1::uuid
+            AND tenant_id = $2::uuid
+          LIMIT 1
+          `,
+          [
+            input.batch_id,
+            tenantId
+          ]
+        );
+
+      const existingBatchTrip =
+        existingBatchTripResult.rows[0];
+
+      if (existingBatchTrip) {
+        throw new Error(
+          `Batch ${batch.batch_number} is already assigned to trip ${existingBatchTrip.public_trip_code}`
+        );
+      }
+    }
+
+    // --------------------------------------------------
+    // 6. GENERATE TRIP NUMBER / CODE
+    // --------------------------------------------------
+
+    const code = await generateNextTripCode(
+      tenantId
+    );
+
+    // --------------------------------------------------
+    // 7. CREATE TRIP
+    // --------------------------------------------------
 
     const tripResult = await client.query(
       `
@@ -164,8 +330,11 @@ export async function createTrip(
         public_trip_code,
         truck_id,
         driver_id,
+        trailer_id,
+        batch_id,
         route_from,
         route_to,
+        destination_country,
         cargo_description,
         planned_start_at,
         expected_arrival_at,
@@ -177,11 +346,14 @@ export async function createTrip(
         $3::varchar,
         $4::uuid,
         $5::uuid,
-        $6::varchar,
-        $7::varchar,
-        $8::text,
-        $9::timestamptz,
-        $10::timestamptz,
+        $6::uuid,
+        $7::uuid,
+        $8::varchar,
+        $9::varchar,
+        $10::varchar,
+        $11::text,
+        $12::timestamptz,
+        $13::timestamptz,
         'ASSIGNED'
       )
       RETURNING *
@@ -192,8 +364,11 @@ export async function createTrip(
         code.publicTripCode,
         input.truck_id,
         input.driver_id,
+        input.trailer_id || null,
+        input.batch_id || null,
         input.route_from,
         input.route_to,
+        input.destination_country,
         input.cargo_description || null,
         input.planned_start_at || null,
         input.expected_arrival_at || null
@@ -202,16 +377,49 @@ export async function createTrip(
 
     const trip = tripResult.rows[0];
 
+    // --------------------------------------------------
+    // 8. ASSIGN TRUCK
+    // --------------------------------------------------
+
     await client.query(
       `
       UPDATE trucks
-      SET status = 'ASSIGNED',
-          updated_at = NOW()
+      SET
+        status = 'ASSIGNED',
+        updated_at = NOW()
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
       `,
-      [input.truck_id, tenantId]
+      [
+        input.truck_id,
+        tenantId
+      ]
     );
+
+    // --------------------------------------------------
+    // 9. ASSIGN TRAILER
+    // --------------------------------------------------
+
+    if (input.trailer_id) {
+      await client.query(
+        `
+        UPDATE trailers
+        SET
+          status = 'ASSIGNED',
+          updated_at = NOW()
+        WHERE id = $1::uuid
+          AND tenant_id = $2::uuid
+        `,
+        [
+          input.trailer_id,
+          tenantId
+        ]
+      );
+    }
+
+    // --------------------------------------------------
+    // 10. STATUS LOG
+    // --------------------------------------------------
 
     await client.query(
       `
@@ -232,8 +440,16 @@ export async function createTrip(
         'COMPANY_ADMIN'
       )
       `,
-      [tenantId, trip.id, input.truck_id]
+      [
+        tenantId,
+        trip.id,
+        input.truck_id
+      ]
     );
+
+    // --------------------------------------------------
+    // 11. TRIP UPDATE
+    // --------------------------------------------------
 
     await client.query(
       `
@@ -256,15 +472,22 @@ export async function createTrip(
         'Trip manually created by Company Admin'
       )
       `,
-      [tenantId, trip.id, input.truck_id, input.driver_id]
+      [
+        tenantId,
+        trip.id,
+        input.truck_id,
+        input.driver_id
+      ]
     );
 
     await client.query("COMMIT");
 
     return trip;
+
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
+
   } finally {
     client.release();
   }
@@ -280,15 +503,27 @@ export async function updateTripStatus(
   try {
     await client.query("BEGIN");
 
+    // --------------------------------------------------
+    // 1. GET TRIP
+    // --------------------------------------------------
+
     const tripResult = await client.query(
       `
-      SELECT id, public_trip_code, truck_id, driver_id, status
+      SELECT
+        id,
+        public_trip_code,
+        truck_id,
+        driver_id,
+        status
       FROM trips
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
       LIMIT 1
       `,
-      [tripId, tenantId]
+      [
+        tripId,
+        tenantId
+      ]
     );
 
     const trip = tripResult.rows[0];
@@ -298,10 +533,19 @@ export async function updateTripStatus(
     }
 
     if (trip.status === "COMPLETED") {
-      throw new Error("Completed trips cannot be changed");
+      throw new Error(
+        "Completed trips cannot be changed"
+      );
     }
 
-    const allowedStatuses = getAllowedManualStatuses(trip.status);
+    // --------------------------------------------------
+    // 2. CHECK VALID TRANSITION
+    // --------------------------------------------------
+
+    const allowedStatuses =
+      getAllowedManualStatuses(
+        trip.status
+      );
 
     if (!allowedStatuses.includes(newStatus)) {
       throw new Error(
@@ -310,35 +554,81 @@ export async function updateTripStatus(
     }
 
     if (newStatus === "COMPLETED") {
-      throw new Error("Use the Complete Trip action to complete a trip");
+      throw new Error(
+        "Use the Complete Trip action to complete a trip"
+      );
     }
 
-    const newTruckStatus = mapTripStatusToTruckStatus(newStatus);
+    const newTruckStatus =
+      mapTripStatusToTruckStatus(
+        newStatus
+      );
+
+    // --------------------------------------------------
+    // 3. UPDATE TRIP
+    // --------------------------------------------------
 
     await client.query(
       `
       UPDATE trips
-      SET status = $1::varchar,
-          updated_at = NOW(),
-          started_at = CASE WHEN $1::varchar = 'STARTED' THEN NOW() ELSE started_at END,
-          on_route_at = CASE WHEN $1::varchar = 'ON_ROUTE' THEN NOW() ELSE on_route_at END,
-          arrived_at = CASE WHEN $1::varchar = 'ARRIVED' THEN NOW() ELSE arrived_at END
+      SET
+        status = $1::varchar,
+        updated_at = NOW(),
+
+        started_at =
+          CASE
+            WHEN $1::varchar = 'STARTED'
+            THEN NOW()
+            ELSE started_at
+          END,
+
+        on_route_at =
+          CASE
+            WHEN $1::varchar = 'ON_ROUTE'
+            THEN NOW()
+            ELSE on_route_at
+          END,
+
+        arrived_at =
+          CASE
+            WHEN $1::varchar = 'ARRIVED'
+            THEN NOW()
+            ELSE arrived_at
+          END
+
       WHERE id = $2::uuid
         AND tenant_id = $3::uuid
       `,
-      [newStatus, tripId, tenantId]
+      [
+        newStatus,
+        tripId,
+        tenantId
+      ]
     );
+
+    // --------------------------------------------------
+    // 4. UPDATE TRUCK
+    // --------------------------------------------------
 
     await client.query(
       `
       UPDATE trucks
-      SET status = $1::varchar,
-          updated_at = NOW()
+      SET
+        status = $1::varchar,
+        updated_at = NOW()
       WHERE id = $2::uuid
         AND tenant_id = $3::uuid
       `,
-      [newTruckStatus, trip.truck_id, tenantId]
+      [
+        newTruckStatus,
+        trip.truck_id,
+        tenantId
+      ]
     );
+
+    // --------------------------------------------------
+    // 5. TRIP UPDATE
+    // --------------------------------------------------
 
     await client.query(
       `
@@ -371,6 +661,10 @@ export async function updateTripStatus(
       ]
     );
 
+    // --------------------------------------------------
+    // 6. STATUS LOG
+    // --------------------------------------------------
+
     await client.query(
       `
       INSERT INTO status_logs (
@@ -390,10 +684,23 @@ export async function updateTripStatus(
         'COMPANY_ADMIN'
       )
       `,
-      [tenantId, trip.id, trip.truck_id, trip.status, newStatus]
+      [
+        tenantId,
+        trip.id,
+        trip.truck_id,
+        trip.status,
+        newStatus
+      ]
     );
 
-    if (newStatus === "DELAYED" || newStatus === "BREAKDOWN") {
+    // --------------------------------------------------
+    // 7. NOTIFICATION
+    // --------------------------------------------------
+
+    if (
+      newStatus === "DELAYED" ||
+      newStatus === "BREAKDOWN"
+    ) {
       await client.query(
         `
         INSERT INTO notifications (
@@ -402,14 +709,22 @@ export async function updateTripStatus(
           message,
           type
         )
-        VALUES ($1::uuid, $2::varchar, $3::text, $4::varchar)
+        VALUES (
+          $1::uuid,
+          $2::varchar,
+          $3::text,
+          $4::varchar
+        )
         `,
         [
           tenantId,
+
           newStatus === "DELAYED"
             ? "Trip marked as delayed"
             : "Trip marked as breakdown",
+
           `Trip ${trip.public_trip_code} was manually updated to ${formatStatusLabel(newStatus)} by Company Admin.`,
+
           newStatus
         ]
       );
@@ -424,29 +739,47 @@ export async function updateTripStatus(
       new_status: newStatus,
       truck_status: newTruckStatus
     };
+
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
+
   } finally {
     client.release();
   }
 }
 
-export async function completeTrip(tenantId: string, tripId: string) {
+export async function completeTrip(
+  tenantId: string,
+  tripId: string
+) {
   const client = await db.connect();
 
   try {
     await client.query("BEGIN");
 
+    // --------------------------------------------------
+    // 1. GET TRIP
+    // --------------------------------------------------
+
     const tripResult = await client.query(
       `
-      SELECT id, public_trip_code, truck_id, driver_id, status
+      SELECT
+        id,
+        public_trip_code,
+        truck_id,
+        driver_id,
+        trailer_id,
+        status
       FROM trips
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
       LIMIT 1
       `,
-      [tripId, tenantId]
+      [
+        tripId,
+        tenantId
+      ]
     );
 
     const trip = tripResult.rows[0];
@@ -456,35 +789,80 @@ export async function completeTrip(tenantId: string, tripId: string) {
     }
 
     if (trip.status === "COMPLETED") {
-      throw new Error("Trip is already completed");
+      throw new Error(
+        "Trip is already completed"
+      );
     }
 
     if (trip.status !== "ARRIVED") {
-      throw new Error("Only arrived trips can be completed");
+      throw new Error(
+        "Only arrived trips can be completed"
+      );
     }
+
+    // --------------------------------------------------
+    // 2. COMPLETE TRIP
+    // --------------------------------------------------
 
     await client.query(
       `
       UPDATE trips
-      SET status = 'COMPLETED',
-          completed_at = NOW(),
-          updated_at = NOW()
+      SET
+        status = 'COMPLETED',
+        completed_at = NOW(),
+        updated_at = NOW()
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
       `,
-      [tripId, tenantId]
+      [
+        tripId,
+        tenantId
+      ]
     );
+
+    // --------------------------------------------------
+    // 3. RELEASE TRUCK
+    // --------------------------------------------------
 
     await client.query(
       `
       UPDATE trucks
-      SET status = 'AVAILABLE',
-          updated_at = NOW()
+      SET
+        status = 'AVAILABLE',
+        updated_at = NOW()
       WHERE id = $1::uuid
         AND tenant_id = $2::uuid
       `,
-      [trip.truck_id, tenantId]
+      [
+        trip.truck_id,
+        tenantId
+      ]
     );
+
+    // --------------------------------------------------
+    // 4. RELEASE TRAILER
+    // --------------------------------------------------
+
+    if (trip.trailer_id) {
+      await client.query(
+        `
+        UPDATE trailers
+        SET
+          status = 'AVAILABLE',
+          updated_at = NOW()
+        WHERE id = $1::uuid
+          AND tenant_id = $2::uuid
+        `,
+        [
+          trip.trailer_id,
+          tenantId
+        ]
+      );
+    }
+
+    // --------------------------------------------------
+    // 5. TRIP UPDATE
+    // --------------------------------------------------
 
     await client.query(
       `
@@ -507,8 +885,17 @@ export async function completeTrip(tenantId: string, tripId: string) {
         'Trip manually completed by Company Admin'
       )
       `,
-      [tenantId, trip.id, trip.truck_id, trip.driver_id]
+      [
+        tenantId,
+        trip.id,
+        trip.truck_id,
+        trip.driver_id
+      ]
     );
+
+    // --------------------------------------------------
+    // 6. STATUS LOG
+    // --------------------------------------------------
 
     await client.query(
       `
@@ -529,7 +916,12 @@ export async function completeTrip(tenantId: string, tripId: string) {
         'COMPANY_ADMIN'
       )
       `,
-      [tenantId, trip.id, trip.truck_id, trip.status]
+      [
+        tenantId,
+        trip.id,
+        trip.truck_id,
+        trip.status
+      ]
     );
 
     await client.query("COMMIT");
@@ -537,9 +929,11 @@ export async function completeTrip(tenantId: string, tripId: string) {
     return {
       message: `Trip ${trip.public_trip_code} completed successfully`
     };
+
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
+
   } finally {
     client.release();
   }

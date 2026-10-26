@@ -21,6 +21,10 @@ export default function DashboardLayout() {
           Truck Registry
         </NavLink>
 
+        <NavLink to="/company-admin/trailers">
+          Trailer Registry
+        </NavLink>
+
         <NavLink to="/company-admin/drivers">
           Driver Profiles
         </NavLink>
@@ -28,6 +32,10 @@ export default function DashboardLayout() {
         <NavLink to="/company-admin/trips">
           Trip Manager
         </NavLink>
+
+        <NavLink to="/company-admin/route-templates">
+  Route Templates
+</NavLink>
 
         <NavLink to="/company-admin/status-board">
           Status Board
@@ -55,7 +63,10 @@ export default function DashboardLayout() {
       </aside>
 
       <main className="main">
-        <div className="topbar">FleetIQ Company Dashboard</div>
+        <div className="topbar">
+          FleetIQ Company Dashboard
+        </div>
+
         <Outlet />
       </main>
     </div>

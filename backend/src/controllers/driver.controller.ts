@@ -1,9 +1,22 @@
+
 import { Request, Response } from "express";
 import * as driverService from "../services/driver.service";
 
 export async function listDrivers(req: Request, res: Response) {
-  const drivers = await driverService.listDrivers(req.user!.tenant_id!);
-  res.json(drivers);
+  try {
+    const drivers = await driverService.listDrivers(
+      req.user!.tenant_id!
+    );
+
+    res.json(drivers);
+  } catch (error) {
+    res.status(500).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to load drivers"
+    });
+  }
 }
 
 export async function createDriver(req: Request, res: Response) {
@@ -17,7 +30,9 @@ export async function createDriver(req: Request, res: Response) {
   } catch (error) {
     res.status(400).json({
       message:
-        error instanceof Error ? error.message : "Failed to create driver"
+        error instanceof Error
+          ? error.message
+          : "Failed to create driver"
     });
   }
 }

@@ -1,9 +1,33 @@
 import { Request, Response } from "express";
+
 import * as authService from "../services/auth.service";
+
+export async function register(req: Request, res: Response) {
+  try {
+    const result = await authService.register(
+      req.body.company_name,
+      req.body.email,
+      req.body.password
+    );
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Registration failed"
+    });
+  }
+}
 
 export async function login(req: Request, res: Response) {
   try {
-    const result = await authService.login(req.body.email, req.body.password);
+    const result = await authService.login(
+      req.body.email,
+      req.body.password
+    );
+
     return res.json(result);
   } catch (error) {
     return res.status(401).json({
@@ -28,7 +52,9 @@ export async function changePassword(req: Request, res: Response) {
   } catch (error) {
     res.status(400).json({
       message:
-        error instanceof Error ? error.message : "Failed to change password"
+        error instanceof Error
+          ? error.message
+          : "Failed to change password"
     });
   }
 }

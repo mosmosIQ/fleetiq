@@ -13,15 +13,19 @@ import notificationRoutes from "./routes/notification.routes";
 import reportRoutes from "./routes/report.routes";
 import userRoutes from "./routes/user.routes";
 import superAdminRoutes from "./routes/superAdmin.routes";
-
+import batchRoutes from "./routes/batch.routes";
+import journeyEventRoutes from "./routes/journeyEvent.routes";
+import trailerRoutes from "./routes/trailer.routes";
+import trackingReportRoutes from "./routes/trackingReport.routes";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { env } from "./config/env";
+import routeTemplateRoutes from "./routes/routeTemplate.routes";
 
 const app = express();
 
 app.use(helmet());
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: "8mb"}));
 app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => {
@@ -41,7 +45,11 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/super-admin", superAdminRoutes);
-
+app.use("/api/batches", batchRoutes);
+app.use("/api/journey-events", journeyEventRoutes);
+app.use("/api/trailers", trailerRoutes);
+app.use("/api/tracking-reports", trackingReportRoutes);
+app.use("/api/route-templates", routeTemplateRoutes);
 app.use(errorMiddleware);
 
 export default app;

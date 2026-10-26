@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import CompaniesPage from "./pages/super-admin/CompaniesPage";
 import AddCompanyPage from "./pages/super-admin/AddCompanyPage";
@@ -14,16 +16,20 @@ import StatusBoardPage from "./pages/company-admin/StatusBoardPage";
 import DocumentsPage from "./pages/company-admin/DocumentsPage";
 import NotificationsPage from "./pages/company-admin/NotificationsPage";
 import SettingsPage from "./pages/company-admin/SettingsPage";
-
+import TrailerRegistryPage from "./pages/company-admin/TrailerRegistryPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import RouteTemplatesPage from "./pages/company-admin/RouteTemplatesPage";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
+
       <Route path="/login" element={<LoginPage />} />
+
+      <Route path="/signup" element={<SignupPage />} />
 
       <Route
         path="/super-admin"
@@ -49,8 +55,10 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="trucks" element={<TruckRegistryPage />} />
+        <Route path="trailers" element={<TrailerRegistryPage />} />
         <Route path="drivers" element={<DriverProfilesPage />} />
         <Route path="trips" element={<TripManagerPage />} />
+        <Route path="route-templates" element={<RouteTemplatesPage />} />
         <Route path="status-board" element={<StatusBoardPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
