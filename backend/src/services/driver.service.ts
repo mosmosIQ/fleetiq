@@ -18,6 +18,8 @@ export async function listDrivers(tenantId: string) {
     SELECT
       d.*,
       chemical_document.file_url AS chemical_certificate_image,
+      license_document.file_url AS license_image,
+      passport_document.file_url AS passport_image,
       active_trip.id AS active_trip_id,
       active_trip.public_trip_code AS active_trip_code,
       CASE
@@ -35,6 +37,26 @@ export async function listDrivers(tenantId: string) {
       ORDER BY doc.created_at DESC
       LIMIT 1
     ) chemical_document ON true
+
+    LEFT JOIN LATERAL (
+      SELECT doc.file_url
+      FROM documents doc
+      WHERE doc.driver_id = d.id
+        AND doc.tenant_id = d.tenant_id
+        AND doc.document_type = 'DRIVER_LICENSE'
+      ORDER BY doc.created_at DESC
+      LIMIT 1
+    ) license_document ON true
+
+    LEFT JOIN LATERAL (
+      SELECT doc.file_url
+      FROM documents doc
+      WHERE doc.driver_id = d.id
+        AND doc.tenant_id = d.tenant_id
+        AND doc.document_type = 'PASSPORT'
+      ORDER BY doc.created_at DESC
+      LIMIT 1
+    ) passport_document ON true
 
     LEFT JOIN LATERAL (
       SELECT t.id, t.public_trip_code
@@ -64,6 +86,8 @@ export interface CreateDriverInput {
   chemical_certificate_number?: string;
   chemical_certificate_expiry_date?: string;
   chemical_certificate_image?: string;
+  license_image?: string;
+  passport_image?: string;
 }
 
 export async function createDriver(
@@ -106,7 +130,30 @@ export async function createDriver(
 
     const driver = result.rows[0];
 
-    if (input.chemical_certificate_image) {
+    const documentsToSave = [
+      {
+        type: "CHEMICAL_CERTIFICATE",
+        image: input.chemical_certificate_image,
+        expiry: input.chemical_certificate_expiry_date,
+        field: "chemical_certificate_image"
+      },
+      {
+        type: "DRIVER_LICENSE",
+        image: input.license_image,
+        expiry: input.license_expiry_date,
+        field: "license_image"
+      },
+      {
+        type: "PASSPORT",
+        image: input.passport_image,
+        expiry: null,
+        field: "passport_image"
+      }
+    ];
+
+    for (const item of documentsToSave) {
+      if (!item.image) continue;
+
       await client.query(
         `
         INSERT INTO documents (
@@ -116,18 +163,18 @@ export async function createDriver(
           file_url,
           expiry_date
         )
-        VALUES ($1, $2, 'CHEMICAL_CERTIFICATE', $3, $4)
+        VALUES ($1, $2, $3, $4, $5)
         `,
         [
           tenantId,
           driver.id,
-          input.chemical_certificate_image,
-          input.chemical_certificate_expiry_date || null
+          item.type,
+          item.image,
+          item.expiry || null
         ]
       );
 
-      driver.chemical_certificate_image =
-        input.chemical_certificate_image;
+      driver[item.field] = item.image;
     }
 
     await client.query("COMMIT");

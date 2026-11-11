@@ -14,6 +14,8 @@ export interface Driver {
   chemical_certificate_number?: string | null;
   chemical_certificate_expiry_date?: string | null;
   chemical_certificate_image?: string | null;
+  license_image?: string | null;
+  passport_image?: string | null;
 
   is_active: boolean;
   active_trip_id?: string | null;
@@ -33,6 +35,8 @@ export interface CreateDriverInput {
   chemical_certificate_number?: string;
   chemical_certificate_expiry_date?: string;
   chemical_certificate_image?: string;
+  license_image?: string;
+  passport_image?: string;
 }
 
 export async function listDrivers() {

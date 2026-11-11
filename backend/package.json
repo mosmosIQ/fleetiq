@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "seed:super-admin": "tsx src/scripts/createSuperAdmin.ts"
+    "seed:super-admin": "tsx src/scripts/createSuperAdmin.ts",
+    "db:reset": "tsx src/scripts/resetDatabase.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

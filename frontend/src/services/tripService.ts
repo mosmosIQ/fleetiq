@@ -1,6 +1,5 @@
 import { api } from "./api";
 
-export type TripDestinationCountry = "DRC" | "ZAMBIA";
 export interface Trip {
   id: string; public_trip_code: string; truck_id: string; driver_id: string;
   trailer_id?: string | null; batch_id?: string | null; plate_number: string;
@@ -10,13 +9,13 @@ export interface Trip {
   batch_direction?: "NORTHBOUND" | "SOUTHBOUND" | null; loading_point?: string | null;
   truck_handover_date?: string | null; loading_date?: string | null; tons?: number | null;
   release_date?: string | null; route_from: string; route_to: string;
-  destination_country?: TripDestinationCountry | null; cargo_description?: string | null;
+  cargo_description?: string | null;
   status: string; planned_start_at?: string | null; expected_arrival_at?: string | null;
   last_update_source?: string | null; last_update_at?: string | null; created_at: string;
 }
 export interface CreateTripInput {
   truck_id: string; driver_id: string; trailer_id?: string; batch_id?: string;
-  route_from: string; route_to: string; destination_country: TripDestinationCountry;
+  route_from: string; route_to: string;
   cargo_description?: string; planned_start_at?: string; expected_arrival_at?: string;
 }
 export type ManualTripStatus = "STARTED" | "ON_ROUTE" | "ARRIVED" | "DELAYED" | "BREAKDOWN";

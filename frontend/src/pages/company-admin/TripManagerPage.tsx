@@ -25,7 +25,6 @@ import {
   listTrips,
   ManualTripStatus,
   Trip,
-  TripDestinationCountry,
   updateTripStatus
 } from "../../services/tripService";
 
@@ -78,7 +77,6 @@ export default function TripManagerPage() {
 
     route_from: "",
     route_to: "",
-    destination_country: "DRC" as TripDestinationCountry,
 
     cargo_description: "",
 
@@ -390,8 +388,6 @@ export default function TripManagerPage() {
         route_to:
           form.route_to.trim(),
 
-        destination_country: form.destination_country,
-
         cargo_description:
           form.cargo_description.trim() ||
           undefined,
@@ -412,7 +408,6 @@ export default function TripManagerPage() {
         driver_id: "",
         route_from: "",
         route_to: "",
-        destination_country: "DRC",
         cargo_description: "",
         planned_start_at: "",
         expected_arrival_at: ""
@@ -1273,25 +1268,6 @@ export default function TripManagerPage() {
             />
           </div>
 
-
-          {/* Destination Country */}
-
-          <div>
-            <label>Destination Country</label>
-            <select
-              className="input"
-              value={form.destination_country}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  destination_country: event.target.value as TripDestinationCountry
-                })
-              }
-            >
-              <option value="DRC">Democratic Republic of the Congo (DRC)</option>
-              <option value="ZAMBIA">Zambia</option>
-            </select>
-          </div>
 
           {/* Cargo */}
 

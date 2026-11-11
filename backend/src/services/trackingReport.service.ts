@@ -20,7 +20,6 @@ interface JourneyEvent {
 interface ReportTrip {
   id: string;
   public_trip_code: string;
-  destination_country?: string | null;
   direction: ReportDirection | null;
   batch_id: string | null;
   batch_number: number | string | null;
@@ -165,7 +164,6 @@ async function getTrackingTrips(
     SELECT
       t.id,
       t.public_trip_code,
-      t.destination_country,
 
       b.id AS batch_id,
       b.batch_number,
@@ -648,7 +646,6 @@ export async function generateTrackingReport(
 
   eventSheet.columns = [
     { header: "Direction", key: "direction", width: 16 },
-    { header: "Destination Country", key: "destination_country", width: 20 },
     { header: "Trip Code", key: "trip_code", width: 18 },
     { header: "Truck", key: "truck", width: 16 },
     { header: "Trailer", key: "trailer", width: 16 },
@@ -672,7 +669,6 @@ export async function generateTrackingReport(
     for (const event of trip.events) {
       const eventRow = eventSheet.addRow({
         direction: trip.direction || "",
-        destination_country: trip.destination_country || "",
         trip_code: trip.public_trip_code,
         truck: trip.plate_number,
         trailer: trip.trailer_number || "",

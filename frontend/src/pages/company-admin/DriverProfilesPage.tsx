@@ -15,9 +15,21 @@ const initialForm = {
   chemical_certificate_number: "",
   chemical_certificate_expiry_date: "",
   chemical_certificate_image: "",
+  license_image: "",
+  passport_image: "",
 };
 
 type FormState = typeof initialForm;
+type ImageField =
+  | "chemical_certificate_image"
+  | "license_image"
+  | "passport_image";
+
+const imageFields: { field: ImageField; label: string }[] = [
+  { field: "chemical_certificate_image", label: "Chemical Certificate" },
+  { field: "license_image", label: "Driver Licence" },
+  { field: "passport_image", label: "Passport" },
+];
 
 /**
  * Convert the image value returned by the API into a value that an <img>
@@ -54,9 +66,11 @@ export default function DriverProfilesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState<FormState>(initialForm);
-  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFileNames, setSelectedFileNames] = useState<
+    Partial<Record<ImageField, string>>
+  >({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState("Chemical certificate");
+  const [previewTitle, setPreviewTitle] = useState("Document");
 
   async function loadDrivers() {
     try {
@@ -79,7 +93,11 @@ export default function DriverProfilesPage() {
     setForm((previous) => ({ ...previous, [field]: value }));
   }
 
-  function handleCertificateImage(event: ChangeEvent<HTMLInputElement>) {
+  function handleDocumentImage(
+    field: ImageField,
+    label: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -93,7 +111,7 @@ export default function DriverProfilesPage() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Chemical certificate image must be 5 MB or smaller.");
+      setError(`${label} image must be 5 MB or smaller.`);
       event.target.value = "";
       return;
     }
@@ -103,9 +121,12 @@ export default function DriverProfilesPage() {
       if (typeof reader.result === "string") {
         setForm((previous) => ({
           ...previous,
-          chemical_certificate_image: reader.result as string,
+          [field]: reader.result as string,
         }));
-        setSelectedFileName(file.name);
+        setSelectedFileNames((previous) => ({
+          ...previous,
+          [field]: file.name,
+        }));
       }
     };
     reader.onerror = () => {
@@ -134,11 +155,13 @@ export default function DriverProfilesPage() {
           form.chemical_certificate_expiry_date || undefined,
         chemical_certificate_image:
           form.chemical_certificate_image || undefined,
+        license_image: form.license_image || undefined,
+        passport_image: form.passport_image || undefined,
       };
 
       await createDriver(payload);
       setForm(initialForm);
-      setSelectedFileName("");
+      setSelectedFileNames({});
       setSuccess("Driver added successfully.");
       await loadDrivers();
     } catch (err) {
@@ -152,19 +175,16 @@ export default function DriverProfilesPage() {
     }
   }
 
-  function removeCertificateImage() {
-    setForm((previous) => ({
-      ...previous,
-      chemical_certificate_image: "",
-    }));
-    setSelectedFileName("");
+  function removeDocumentImage(field: ImageField) {
+    setForm((previous) => ({ ...previous, [field]: "" }));
+    setSelectedFileNames((previous) => ({ ...previous, [field]: "" }));
   }
 
   function openPreview(value: string | null | undefined, title: string) {
     const src = getImageSrc(value);
     if (!src) {
       setError(
-        "No certificate image is available. If this driver already has a certificate, check that the API returns chemical_certificate_image.",
+        "No image is available for this document.",
       );
       return;
     }
@@ -294,77 +314,75 @@ export default function DriverProfilesPage() {
             />
           </div>
 
-          <div>
-            <label>Chemical Certificate Image (JPG, PNG, WEBP; max 5 MB)</label>
-            <input
-              className="input"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleCertificateImage}
-            />
+          {imageFields.map(({ field, label }) => (
+            <div key={field}>
+              <label>{label} Image (JPG, PNG, WEBP; max 5 MB)</label>
+              <input
+                className="input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) =>
+                  handleDocumentImage(field, label, event)
+                }
+              />
 
-            {selectedFileName && (
-              <small style={{ display: "block", marginTop: 6 }}>
-                Selected: {selectedFileName}
-              </small>
-            )}
+              {selectedFileNames[field] && (
+                <small style={{ display: "block", marginTop: 6 }}>
+                  Selected: {selectedFileNames[field]}
+                </small>
+              )}
 
-            {form.chemical_certificate_image && (
-              <div style={{ marginTop: 8 }}>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() =>
-                    openPreview(
-                      form.chemical_certificate_image,
-                      "Selected chemical certificate",
-                    )
-                  }
-                >
-                  Preview selected image
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  style={{ marginLeft: 8 }}
-                  onClick={removeCertificateImage}
-                >
-                  Remove image
-                </button>
-              </div>
-            )}
+              {form[field] && (
+                <>
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() =>
+                        openPreview(form[field], `Selected ${label}`)
+                      }
+                    >
+                      Preview selected image
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => removeDocumentImage(field)}
+                    >
+                      Remove image
+                    </button>
+                  </div>
 
-            {form.chemical_certificate_image && (
-              <div style={{ marginTop: 12 }}>
-                <img
-                  src={getImageSrc(form.chemical_certificate_image) ?? undefined}
-                  alt="Selected chemical certificate thumbnail"
-                  style={{
-                    display: "block",
-                    maxWidth: "100%",
-                    width: 220,
-                    maxHeight: 160,
-                    objectFit: "contain",
-                    border: "1px solid #d8dee8",
-                    borderRadius: 6,
-                    background: "#f8fafc",
-                    cursor: "pointer",
-                  }}
-                  onClick={() =>
-                    openPreview(
-                      form.chemical_certificate_image,
-                      "Selected chemical certificate",
-                    )
-                  }
-                  onError={() =>
-                    setError(
-                      "The selected image could not be displayed. Please select the image again.",
-                    )
-                  }
-                />
-              </div>
-            )}
-          </div>
+                  <div style={{ marginTop: 12 }}>
+                    <img
+                      src={getImageSrc(form[field]) ?? undefined}
+                      alt={`Selected ${label} thumbnail`}
+                      style={{
+                        display: "block",
+                        maxWidth: "100%",
+                        width: 220,
+                        maxHeight: 160,
+                        objectFit: "contain",
+                        border: "1px solid #d8dee8",
+                        borderRadius: 6,
+                        background: "#f8fafc",
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        openPreview(form[field], `Selected ${label}`)
+                      }
+                      onError={() =>
+                        setError(
+                          "The selected image could not be displayed. Please select the image again.",
+                        )
+                      }
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
 
         <p style={{ marginTop: 12, fontSize: 13, color: "#64748b" }}>
@@ -385,7 +403,7 @@ export default function DriverProfilesPage() {
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              minWidth: 1100,
+              minWidth: 1300,
             }}
           >
             <thead>
@@ -398,6 +416,8 @@ export default function DriverProfilesPage() {
                 <th style={thStyle}>Chemical Certificate No.</th>
                 <th style={thStyle}>Certificate Expiry</th>
                 <th style={thStyle}>Certificate Image</th>
+                <th style={thStyle}>Licence Image</th>
+                <th style={thStyle}>Passport Image</th>
                 <th style={thStyle}>Status</th>
                 <th style={thStyle}>Availability</th>
               </tr>
@@ -429,6 +449,42 @@ export default function DriverProfilesPage() {
                         }
                       >
                         View certificate
+                      </button>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={tdStyle}>
+                    {driver.license_image ? (
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() =>
+                          openPreview(
+                            driver.license_image,
+                            `${driver.full_name} — driver licence`,
+                          )
+                        }
+                      >
+                        View licence
+                      </button>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={tdStyle}>
+                    {driver.passport_image ? (
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() =>
+                          openPreview(
+                            driver.passport_image,
+                            `${driver.full_name} — passport`,
+                          )
+                        }
+                      >
+                        View passport
                       </button>
                     ) : (
                       "-"
@@ -484,7 +540,7 @@ export default function DriverProfilesPage() {
               onError={() => {
                 setPreviewImage(null);
                 setError(
-                  "The saved certificate image could not be loaded. The API may not be returning valid image data; check chemical_certificate_image in the GET /api/drivers response.",
+                  "The saved image could not be loaded. The stored image data may be invalid.",
                 );
               }}
             />

@@ -115,7 +115,6 @@ export async function createTrip(
     batch_id?: string;
     route_from: string;
     route_to: string;
-    destination_country: "DRC" | "ZAMBIA";
     cargo_description?: string;
     planned_start_at?: string;
     expected_arrival_at?: string;
@@ -334,7 +333,6 @@ export async function createTrip(
         batch_id,
         route_from,
         route_to,
-        destination_country,
         cargo_description,
         planned_start_at,
         expected_arrival_at,
@@ -350,10 +348,9 @@ export async function createTrip(
         $7::uuid,
         $8::varchar,
         $9::varchar,
-        $10::varchar,
-        $11::text,
+        $10::text,
+        $11::timestamptz,
         $12::timestamptz,
-        $13::timestamptz,
         'ASSIGNED'
       )
       RETURNING *
@@ -368,7 +365,6 @@ export async function createTrip(
         input.batch_id || null,
         input.route_from,
         input.route_to,
-        input.destination_country,
         input.cargo_description || null,
         input.planned_start_at || null,
         input.expected_arrival_at || null
