@@ -18,6 +18,9 @@ export const createDriverSchema = z.object({
   chemical_certificate_number: optionalText(100),
   chemical_certificate_expiry_date: optionalDate,
 
+  joining_date: optionalDate,
+  leaving_date: optionalDate,
+
   // Image is sent as a data URL and stored in documents.file_url.
   chemical_certificate_image: z
     .string()
@@ -29,3 +32,5 @@ export const createDriverSchema = z.object({
     .optional()
     .or(z.literal(""))
 });
+
+export const updateDriverSchema = createDriverSchema.partial();

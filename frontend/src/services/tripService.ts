@@ -16,7 +16,7 @@ export interface Trip {
 }
 export interface CreateTripInput {
   truck_id: string; driver_id: string; trailer_id?: string; batch_id?: string;
-  route_from: string; route_to: string; destination_country: TripDestinationCountry;
+  route_from: string; route_to: string; destination_country?: TripDestinationCountry;
   cargo_description?: string; planned_start_at?: string; expected_arrival_at?: string;
 }
 export type ManualTripStatus = "STARTED" | "ON_ROUTE" | "ARRIVED" | "DELAYED" | "BREAKDOWN";

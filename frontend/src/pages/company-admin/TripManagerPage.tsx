@@ -1,3 +1,5 @@
+import JourneyTracker from "./JourneyTracker";
+
 import {
   FormEvent,
   useEffect,
@@ -25,7 +27,6 @@ import {
   listTrips,
   ManualTripStatus,
   Trip,
-  TripDestinationCountry,
   updateTripStatus
 } from "../../services/tripService";
 
@@ -73,12 +74,9 @@ export default function TripManagerPage() {
   const [form, setForm] = useState({
     batch_id: "",
     truck_id: "",
-    trailer_id: "",
-    driver_id: "",
 
     route_from: "",
     route_to: "",
-    destination_country: "DRC" as TripDestinationCountry,
 
     cargo_description: "",
 
@@ -255,6 +253,69 @@ export default function TripManagerPage() {
 
 
   // ============================================================
+  // LINKED TRAILER & DRIVER OF THE SELECTED TRUCK
+  // (set once in Fleet Registry, not chosen again here)
+  // ============================================================
+
+  const selectedTruck: any = useMemo(
+    () => trucks.find((truck: any) => truck.id === form.truck_id),
+    [trucks, form.truck_id]
+  );
+
+  const linkedTrailer: any = useMemo(
+    () =>
+      trailers.find(
+        (trailer: any) =>
+          trailer.id === selectedTruck?.assigned_trailer_id
+      ),
+    [trailers, selectedTruck]
+  );
+
+  const linkedDriver: any = useMemo(
+    () =>
+      drivers.find(
+        (driver: any) =>
+          driver.id === selectedTruck?.assigned_driver_id
+      ),
+    [drivers, selectedTruck]
+  );
+
+  const linkProblems: string[] = useMemo(() => {
+    if (!selectedTruck) return [];
+
+    const problems: string[] = [];
+
+    if (!linkedTrailer) {
+      problems.push(
+        "This truck has no linked trailer. Link one in Fleet Registry."
+      );
+    } else if (
+      linkedTrailer.status !== "AVAILABLE" ||
+      linkedTrailer.active_trip_id
+    ) {
+      problems.push(
+        `Linked trailer ${linkedTrailer.trailer_number} is not available right now.`
+      );
+    }
+
+    if (!linkedDriver) {
+      problems.push(
+        "This truck has no linked driver. Link one in Fleet Registry."
+      );
+    } else if (
+      linkedDriver.is_active === false ||
+      linkedDriver.availability_status === "ON_TRIP"
+    ) {
+      problems.push(
+        `Linked driver ${linkedDriver.full_name} is not available right now.`
+      );
+    }
+
+    return problems;
+  }, [selectedTruck, linkedTrailer, linkedDriver]);
+
+
+  // ============================================================
   // AVAILABLE BATCHES
   // ============================================================
 
@@ -351,13 +412,11 @@ export default function TripManagerPage() {
       return;
     }
 
-    if (!form.trailer_id) {
-      setError("Please select a trailer.");
-      return;
-    }
-
-    if (!form.driver_id) {
-      setError("Please select a driver.");
+    if (linkProblems.length > 0 || !linkedTrailer || !linkedDriver) {
+      setError(
+        linkProblems[0] ||
+          "This truck needs a linked trailer and driver."
+      );
       return;
     }
 
@@ -380,17 +439,15 @@ export default function TripManagerPage() {
 
         truck_id: form.truck_id,
 
-        trailer_id: form.trailer_id,
+        trailer_id: linkedTrailer.id,
 
-        driver_id: form.driver_id,
+        driver_id: linkedDriver.id,
 
         route_from:
           form.route_from.trim(),
 
         route_to:
           form.route_to.trim(),
-
-        destination_country: form.destination_country,
 
         cargo_description:
           form.cargo_description.trim() ||
@@ -408,11 +465,8 @@ export default function TripManagerPage() {
       setForm({
         batch_id: "",
         truck_id: "",
-        trailer_id: "",
-        driver_id: "",
         route_from: "",
         route_to: "",
-        destination_country: "DRC",
         cargo_description: "",
         planned_start_at: "",
         expected_arrival_at: ""
@@ -894,7 +948,6 @@ export default function TripManagerPage() {
             <input
               className="input"
               type="text"
-              placeholder="KURASINI"
               value={batchForm.loading_point}
               onChange={(event) =>
                 setBatchForm({
@@ -967,7 +1020,6 @@ export default function TripManagerPage() {
               type="number"
               step="0.01"
               min="0"
-              placeholder="0.00"
               value={batchForm.tons}
               onChange={(event) =>
                 setBatchForm({
@@ -1013,7 +1065,6 @@ export default function TripManagerPage() {
             <input
               className="input"
               type="text"
-              placeholder="Optional notes"
               value={batchForm.notes}
               onChange={(event) =>
                 setBatchForm({
@@ -1124,8 +1175,7 @@ export default function TripManagerPage() {
               onChange={(event) =>
                 setForm({
                   ...form,
-                  truck_id:
-                    event.target.value
+                  truck_id: event.target.value
                 })
               }
             >
@@ -1150,82 +1200,67 @@ export default function TripManagerPage() {
           </div>
 
 
-          {/* Trailer */}
+          {/* Linked trailer & driver (read-only) */}
 
-          <div>
-            <label>
-              Trailer
-            </label>
+          {selectedTruck && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <div
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  padding: 12,
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 12
+                }}
+              >
+                <div>
+                  <strong>Linked Trailer</strong>
+                  <div>
+                    {linkedTrailer
+                      ? [
+                          linkedTrailer.trailer_number,
+                          linkedTrailer.trailer_type,
+                          linkedTrailer.trailer_model
+                        ]
+                          .filter(Boolean)
+                          .join(" — ")
+                      : "None"}
+                  </div>
+                </div>
 
-            <select
-              className="input"
-              value={form.trailer_id}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  trailer_id:
-                    event.target.value
-                })
-              }
-            >
-              <option value="">
-                Select trailer
-              </option>
+                <div>
+                  <strong>Linked Driver</strong>
+                  <div>
+                    {linkedDriver
+                      ? [
+                          linkedDriver.full_name,
+                          linkedDriver.phone_number
+                        ]
+                          .filter(Boolean)
+                          .join(" — ")
+                      : "None"}
+                  </div>
+                </div>
 
-              {availableTrailers.map(
-                (trailer: any) => (
-                  <option
-                    key={trailer.id}
-                    value={trailer.id}
+                {linkProblems.length > 0 && (
+                  <div
+                    role="alert"
+                    style={{
+                      gridColumn: "1 / -1",
+                      color: "var(--warning)",
+                      fontWeight: 600
+                    }}
                   >
-                    {trailer.trailer_number}
-                    {trailer.trailer_type
-                      ? ` — ${trailer.trailer_type}`
-                      : ""}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-
-          {/* Driver */}
-
-          <div>
-            <label>
-              Driver
-            </label>
-
-            <select
-              className="input"
-              value={form.driver_id}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  driver_id:
-                    event.target.value
-                })
-              }
-            >
-              <option value="">
-                Select driver
-              </option>
-
-              {availableDrivers.map(
-                (driver: any) => (
-                  <option
-                    key={driver.id}
-                    value={driver.id}
-                  >
-                    {driver.full_name}
-                    {driver.phone_number
-                      ? ` — ${driver.phone_number}`
-                      : ""}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
+                    {linkProblems.map((problem) => (
+                      <div key={problem}>{problem}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
 
           {/* Route From */}
@@ -1238,7 +1273,6 @@ export default function TripManagerPage() {
             <input
               className="input"
               type="text"
-              placeholder="KURASINI"
               value={form.route_from}
               onChange={(event) =>
                 setForm({
@@ -1261,7 +1295,6 @@ export default function TripManagerPage() {
             <input
               className="input"
               type="text"
-              placeholder="KOLWEZI"
               value={form.route_to}
               onChange={(event) =>
                 setForm({
@@ -1274,25 +1307,6 @@ export default function TripManagerPage() {
           </div>
 
 
-          {/* Destination Country */}
-
-          <div>
-            <label>Destination Country</label>
-            <select
-              className="input"
-              value={form.destination_country}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  destination_country: event.target.value as TripDestinationCountry
-                })
-              }
-            >
-              <option value="DRC">Democratic Republic of the Congo (DRC)</option>
-              <option value="ZAMBIA">Zambia</option>
-            </select>
-          </div>
-
           {/* Cargo */}
 
           <div>
@@ -1303,7 +1317,6 @@ export default function TripManagerPage() {
             <input
               className="input"
               type="text"
-              placeholder="Optional cargo description"
               value={
                 form.cargo_description
               }
@@ -1552,7 +1565,7 @@ export default function TripManagerPage() {
                           "ASSIGNED" && (
                           <button
                             type="button"
-                            className="button"
+                            className="button button-secondary"
                             onClick={() =>
                               handleStatusUpdate(
                                 trip.id,
@@ -1569,7 +1582,7 @@ export default function TripManagerPage() {
                           "STARTED" && (
                           <button
                             type="button"
-                            className="button"
+                            className="button button-secondary"
                             onClick={() =>
                               handleStatusUpdate(
                                 trip.id,
@@ -1587,7 +1600,7 @@ export default function TripManagerPage() {
                           <>
                             <button
                               type="button"
-                              className="button"
+                              className="button button-secondary"
                               onClick={() =>
                                 handleStatusUpdate(
                                   trip.id,
@@ -1600,7 +1613,7 @@ export default function TripManagerPage() {
 
                             <button
                               type="button"
-                              className="button"
+                              className="button button-secondary"
                               onClick={() =>
                                 handleStatusUpdate(
                                   trip.id,
@@ -1613,7 +1626,7 @@ export default function TripManagerPage() {
 
                             <button
                               type="button"
-                              className="button"
+                              className="button button-danger"
                               onClick={() =>
                                 handleStatusUpdate(
                                   trip.id,
@@ -1666,613 +1679,18 @@ export default function TripManagerPage() {
       ====================================================== */}
 
       {selectedTrip && (
-        <div className="card">
-
-          <div className="card-header">
-
-            <div>
-              <h2>
-                Journey Tracking
-              </h2>
-
-              <p>
-                Track the progress of{" "}
-                <strong>
-                  {selectedTrip.public_trip_code}
-                </strong>
-              </p>
-            </div>
-
-
-            <button
-              type="button"
-              className="button"
-              onClick={closeJourney}
-            >
-              Close
-            </button>
-
-          </div>
-
-
-          {/* ==================================================
-              TRIP SUMMARY
-          ================================================== */}
-
-          <div className="grid">
-
-            <div>
-              <strong>
-                Trip
-              </strong>
-
-              <div>
-                {selectedTrip.public_trip_code}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Batch
-              </strong>
-
-              <div>
-                {selectedTrip.batch_number
-                  ? `Batch ${selectedTrip.batch_number}`
-                  : "-"}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Direction
-              </strong>
-
-              <div>
-                {selectedTrip.batch_direction ||
-                  "-"}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Truck
-              </strong>
-
-              <div>
-                {selectedTrip.plate_number}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Trailer
-              </strong>
-
-              <div>
-                {selectedTrip.trailer_number ||
-                  "-"}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Driver
-              </strong>
-
-              <div>
-                {selectedTrip.driver_name}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Route
-              </strong>
-
-              <div>
-                {selectedTrip.route_from}
-                {" → "}
-                {selectedTrip.route_to}
-              </div>
-            </div>
-
-
-            <div>
-              <strong>
-                Trip Status
-              </strong>
-
-              <div>
-                <span
-                  className={`status-badge ${statusClass(
-                    selectedTrip.status
-                  )}`}
-                >
-                  {selectedTrip.status}
-                </span>
-              </div>
-            </div>
-
-          </div>
-
-
-          {/* ==================================================
-              CURRENT LOCATION
-          ================================================== */}
-
-          <div
-            className="card"
-            style={{
-              marginTop: "20px"
-            }}
-          >
-
-            <h3>
-              Current Location
-            </h3>
-
-            {latestJourneyEvent ? (
-              <div>
-
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 600
-                  }}
-                >
-                  {latestJourneyEvent.location ||
-                    latestJourneyEvent.checkpoint}
-                </div>
-
-                <div>
-                  Last event:{" "}
-                  {latestJourneyEvent.event_type}
-                </div>
-
-                <div>
-                  {formatDate(
-                    latestJourneyEvent.occurred_at
-                  )}
-                </div>
-
-              </div>
-            ) : (
-              <p>
-                No journey events recorded yet.
-              </p>
-            )}
-
-          </div>
-
-
-          {/* ==================================================
-              ADD JOURNEY EVENT
-          ================================================== */}
-
-          <div
-            className="card"
-            style={{
-              marginTop: "20px"
-            }}
-          >
-
-            <div className="card-header">
-              <div>
-                <h3>
-                  Add Journey Event
-                </h3>
-
-                <p>
-                  Record the latest movement
-                  or checkpoint for this trip.
-                </p>
-              </div>
-            </div>
-
-
-            <form
-              onSubmit={
-                handleCreateJourneyEvent
-              }
-              className="grid"
-            >
-
-              {/* Checkpoint */}
-
-              <div>
-                <label>
-                  Checkpoint {journeyForm.event_type !== "FINAL_ARRIVAL" &&
-                    journeyForm.event_type !== "FINAL_OFFLOADING" ? "*" : "(optional)"}
-                </label>
-                <select
-                  className="input"
-                  value={journeyForm.checkpoint}
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      checkpoint: event.target.value,
-                      custom_checkpoint: ""
-                    })
-                  }
-                >
-                  <option value="">Select checkpoint</option>
-                  {checkpointOptions.map((checkpoint) => (
-                    <option key={checkpoint} value={checkpoint}>{checkpoint}</option>
-                  ))}
-                  <option value="__CUSTOM__">Custom checkpoint…</option>
-                </select>
-                {journeyForm.checkpoint === "__CUSTOM__" && (
-                  <input
-                    className="input"
-                    style={{ marginTop: 8 }}
-                    type="text"
-                    maxLength={100}
-                    placeholder="Enter custom checkpoint"
-                    value={journeyForm.custom_checkpoint}
-                    onChange={(event) =>
-                      setJourneyForm({
-                        ...journeyForm,
-                        custom_checkpoint: event.target.value
-                      })
-                    }
-                  />
-                )}
-              </div>
-
-
-              {/* Event Type */}
-
-              <div>
-                <label>
-                  Event Type
-                </label>
-
-                <select
-                  className="input"
-                  value={
-                    journeyForm.event_type
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      event_type:
-                        event.target
-                          .value as JourneyEventType
-                    })
-                  }
-                >
-                  <option value="HANDOVER">
-                    HANDOVER
-                  </option>
-
-                  <option value="LOADING">
-                    LOADING
-                  </option>
-
-                  <option value="RELEASE">
-                    RELEASE
-                  </option>
-
-                  <option value="ARRIVAL">
-                    ARRIVAL
-                  </option>
-
-                  <option value="DEPARTURE">
-                    DEPARTURE
-                  </option>
-
-                  <option value="FINAL_ARRIVAL">
-                    FINAL ARRIVAL
-                  </option>
-
-                  <option value="FINAL_OFFLOADING">
-                    FINAL OFFLOADING
-                  </option>
-                </select>
-              </div>
-
-
-              {/* Location */}
-
-              <div>
-                <label>
-                  Location
-                </label>
-
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="Tunduma Border"
-                  value={
-                    journeyForm.location
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      location:
-                        event.target.value
-                    })
-                  }
-                />
-              </div>
-
-
-              {/* Date */}
-
-              <div>
-                <label>
-                  Date & Time
-                </label>
-
-                <input
-                  className="input"
-                  type="datetime-local"
-                  value={
-                    journeyForm.occurred_at
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      occurred_at:
-                        event.target.value
-                    })
-                  }
-                />
-              </div>
-
-
-              {/* Latitude */}
-
-              <div>
-                <label>
-                  Latitude
-                </label>
-
-                <input
-                  className="input"
-                  type="number"
-                  step="any"
-                  placeholder="Optional"
-                  value={
-                    journeyForm.latitude
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      latitude:
-                        event.target.value
-                    })
-                  }
-                />
-              </div>
-
-
-              {/* Longitude */}
-
-              <div>
-                <label>
-                  Longitude
-                </label>
-
-                <input
-                  className="input"
-                  type="number"
-                  step="any"
-                  placeholder="Optional"
-                  value={
-                    journeyForm.longitude
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      longitude:
-                        event.target.value
-                    })
-                  }
-                />
-              </div>
-
-
-              {/* Notes */}
-
-              <div
-                style={{
-                  gridColumn:
-                    "1 / -1"
-                }}
-              >
-                <label>
-                  Notes
-                </label>
-
-                <textarea
-                  className="input"
-                  rows={3}
-                  placeholder="Optional notes"
-                  value={
-                    journeyForm.notes
-                  }
-                  onChange={(event) =>
-                    setJourneyForm({
-                      ...journeyForm,
-                      notes:
-                        event.target.value
-                    })
-                  }
-                />
-              </div>
-
-
-              {/* Submit */}
-
-              <div>
-                <button
-                  type="submit"
-                  className="button"
-                  disabled={
-                    creatingJourney
-                  }
-                >
-                  {creatingJourney
-                    ? "Saving..."
-                    : "Add Journey Event"}
-                </button>
-              </div>
-
-            </form>
-
-          </div>
-
-
-          {/* ==================================================
-              JOURNEY HISTORY
-          ================================================== */}
-
-          <div
-            className="card"
-            style={{
-              marginTop: "20px"
-            }}
-          >
-
-            <div className="card-header">
-              <div>
-                <h3>
-                  Journey History
-                </h3>
-
-                <p>
-                  All recorded checkpoints for
-                  this trip.
-                </p>
-              </div>
-            </div>
-
-
-            {loadingJourney ? (
-              <p>
-                Loading journey history...
-              </p>
-            ) : journeyEvents.length === 0 ? (
-              <p>
-                No journey events recorded yet.
-              </p>
-            ) : (
-              <div
-                style={{
-                  overflowX: "auto"
-                }}
-              >
-
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse:
-                      "collapse"
-                  }}
-                >
-
-                  <thead>
-                    <tr>
-                      <th>
-                        Date & Time
-                      </th>
-
-                      <th>
-                        Checkpoint
-                      </th>
-
-                      <th>
-                        Event
-                      </th>
-
-                      <th>
-                        Location
-                      </th>
-
-                      <th>
-                        Notes
-                      </th>
-
-                      <th>
-                        Source
-                      </th>
-                    </tr>
-                  </thead>
-
-
-                  <tbody>
-
-                    {journeyEvents.map(
-                      (journeyEvent) => (
-                        <tr
-                          key={
-                            journeyEvent.id
-                          }
-                        >
-
-                          <td>
-                            {formatDate(
-                              journeyEvent.occurred_at
-                            )}
-                          </td>
-
-                          <td>
-                            <strong>
-                              {
-                                journeyEvent.checkpoint
-                              }
-                            </strong>
-                          </td>
-
-                          <td>
-                            {
-                              journeyEvent.event_type
-                            }
-                          </td>
-
-                          <td>
-                            {
-                              journeyEvent.location ||
-                              "-"
-                            }
-                          </td>
-
-                          <td>
-                            {
-                              journeyEvent.notes ||
-                              "-"
-                            }
-                          </td>
-
-                          <td>
-                            {
-                              journeyEvent.source ||
-                              "-"
-                            }
-                          </td>
-
-                        </tr>
-                      )
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-            )}
-
-          </div>
-
-        </div>
+        <JourneyTracker
+          trip={selectedTrip}
+          events={journeyEvents}
+          loading={loadingJourney}
+          saving={creatingJourney}
+          form={journeyForm}
+          onFormChange={setJourneyForm}
+          checkpoints={checkpointOptions}
+          onSubmit={handleCreateJourneyEvent}
+          onClose={closeJourney}
+          statusClass={statusClass}
+        />
       )}
 
     </div>

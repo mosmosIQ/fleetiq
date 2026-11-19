@@ -52,7 +52,7 @@ export default function AddCompanyPage() {
 
       <form className="card" onSubmit={handleSubmit} style={{ maxWidth: 700 }}>
         {error && (
-          <p style={{ color: "red", fontWeight: 600 }}>
+          <p className="error">
             {error}
           </p>
         )}
@@ -64,7 +64,6 @@ export default function AddCompanyPage() {
           className="input"
           value={form.company_name}
           onChange={(e) => updateField("company_name", e.target.value)}
-          placeholder="Example: Simba Logistics"
           required
         />
 
@@ -76,7 +75,6 @@ export default function AddCompanyPage() {
           className="input"
           value={form.company_code}
           onChange={(e) => updateField("company_code", e.target.value.toUpperCase())}
-          placeholder="Example: SIM"
           required
         />
 
@@ -93,7 +91,6 @@ export default function AddCompanyPage() {
           type="email"
           value={form.contact_email}
           onChange={(e) => updateField("contact_email", e.target.value)}
-          placeholder="info@company.com"
           required
         />
 
@@ -105,7 +102,6 @@ export default function AddCompanyPage() {
           className="input"
           value={form.phone}
           onChange={(e) => updateField("phone", e.target.value)}
-          placeholder="+255..."
         />
 
         <br />
@@ -116,7 +112,6 @@ export default function AddCompanyPage() {
           className="input"
           value={form.address}
           onChange={(e) => updateField("address", e.target.value)}
-          placeholder="Dar es Salaam, Tanzania"
         />
 
         <br />
@@ -142,7 +137,6 @@ export default function AddCompanyPage() {
           className="input"
           value={form.admin_name}
           onChange={(e) => updateField("admin_name", e.target.value)}
-          placeholder="Example: Simba Admin"
           required
         />
 
@@ -155,7 +149,6 @@ export default function AddCompanyPage() {
           type="email"
           value={form.admin_email}
           onChange={(e) => updateField("admin_email", e.target.value)}
-          placeholder="admin@company.com"
           required
         />
 

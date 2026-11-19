@@ -65,16 +65,8 @@ export default function SignupPage() {
     <AuthLayout>
       <form className="login-card" onSubmit={handleSignup}>
         <div className="login-header">
-          <span className="login-eyebrow">
-            Get started
-          </span>
 
           <h1>Create your account</h1>
-
-          <p>
-            Create your FleetIQ Company Admin account to get
-            started.
-          </p>
         </div>
 
         {error && (
@@ -93,13 +85,12 @@ export default function SignupPage() {
             onChange={(e) =>
               setCompanyName(e.target.value)
             }
-            placeholder="Your company name"
             required
           />
         </div>
 
         <div className="form-group">
-          <label>Email Address</label>
+          <label>Email</label>
 
           <input
             className="input"
@@ -108,7 +99,6 @@ export default function SignupPage() {
             onChange={(e) =>
               setEmail(e.target.value)
             }
-            placeholder="example@company.com"
             required
           />
         </div>
@@ -123,7 +113,6 @@ export default function SignupPage() {
             onChange={(e) =>
               setPassword(e.target.value)
             }
-            placeholder="Create a password"
             required
           />
         </div>
@@ -138,7 +127,6 @@ export default function SignupPage() {
             onChange={(e) =>
               setConfirmPassword(e.target.value)
             }
-            placeholder="Confirm your password"
             required
           />
         </div>

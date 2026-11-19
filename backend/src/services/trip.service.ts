@@ -63,6 +63,7 @@ export async function listTrips(tenantId: string) {
       b.loading_date,
       b.tons,
       b.release_date,
+      b.checkpoint_snapshot,
 
       latest_update.source AS last_update_source,
       latest_update.created_at AS last_update_at
@@ -115,7 +116,7 @@ export async function createTrip(
     batch_id?: string;
     route_from: string;
     route_to: string;
-    destination_country: "DRC" | "ZAMBIA";
+    destination_country?: "DRC" | "ZAMBIA";
     cargo_description?: string;
     planned_start_at?: string;
     expected_arrival_at?: string;

@@ -59,35 +59,32 @@ export default function NotificationsPage() {
   return (
     <div className="page">
       <h1>Notifications</h1>
-      <p>
-        Important fleet alerts appear here, including delayed trips, breakdowns,
-customer account alerts, and future document expiry alerts.
-      </p>
+      <p>Delays, breakdowns, document expiries and account alerts.</p>
 
       {error && (
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <p className="error">
           {error}
         </p>
       )}
 
       <div className="grid grid-4" style={{ marginBottom: 24 }}>
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Total Alerts</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Total Alerts</p>
           <h2>{notifications.length}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Unread</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Unread</p>
           <h2>{unreadCount}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Delays / Breakdowns</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Delays / Breakdowns</p>
           <h2>{delayBreakdownCount}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Fallback Alerts</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Fallback Alerts</p>
           <h2>{fallbackAlertCount}</h2>
         </div>
       </div>
@@ -132,7 +129,7 @@ customer account alerts, and future document expiry alerts.
                     <td style={tdStyle}>
                       {!notification.is_read ? (
                         <button
-                          className="button"
+                          className="button button-secondary"
                           type="button"
                           onClick={() => handleMarkAsRead(notification.id)}
                         >
@@ -158,26 +155,26 @@ function NotificationBadge({ type }: { type: string }) {
     type === "BREAKDOWN" ||
     type === "WHATSAPP_FALLBACK_FAILED" ||
     type === "NO_DRIVER_REPLY"
-      ? "#fee2e2"
+      ? "var(--danger-tint)"
       : type === "DELAYED"
-      ? "#fef3c7"
+      ? "var(--warning-tint)"
       : type === "WHATSAPP_FALLBACK_SENT"
-      ? "#dcfce7"
+      ? "var(--success-tint)"
       : type.includes("SMS")
-      ? "#e0f2fe"
+      ? "var(--info-tint)"
       : "#e5e7eb";
 
   const color =
     type === "BREAKDOWN" ||
     type === "WHATSAPP_FALLBACK_FAILED" ||
     type === "NO_DRIVER_REPLY"
-      ? "#991b1b"
+      ? "var(--danger)"
       : type === "DELAYED"
-      ? "#92400e"
+      ? "var(--warning)"
       : type === "WHATSAPP_FALLBACK_SENT"
-      ? "#166534"
+      ? "var(--success)"
       : type.includes("SMS")
-      ? "#075985"
+      ? "var(--info)"
       : "#374151";
 
   return (
@@ -200,10 +197,10 @@ function NotificationBadge({ type }: { type: string }) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

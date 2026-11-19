@@ -198,3 +198,61 @@ export async function updateTruckStatus(
 
   return result.rows[0];
 }
+
+export async function updateTruck(
+  tenantId: string,
+  truckId: string,
+  input: {
+    plate_number?: string;
+    truck_type?: string;
+    capacity?: string;
+  }
+) {
+  const plateNumber =
+    input.plate_number !== undefined
+      ? input.plate_number.trim().toUpperCase()
+      : null;
+
+  if (plateNumber !== null && plateNumber.length < 2) {
+    throw new Error("A valid truck plate number is required.");
+  }
+
+  try {
+    const result = await db.query(
+      `
+      UPDATE trucks
+      SET
+        plate_number = COALESCE($3, plate_number),
+        truck_type = CASE WHEN $4::boolean THEN $5 ELSE truck_type END,
+        capacity = CASE WHEN $6::boolean THEN $7 ELSE capacity END,
+        updated_at = NOW()
+      WHERE id = $1
+        AND tenant_id = $2
+      RETURNING *
+      `,
+      [
+        truckId,
+        tenantId,
+        plateNumber,
+        input.truck_type !== undefined,
+        input.truck_type?.trim() || null,
+        input.capacity !== undefined,
+        input.capacity?.trim() || null
+      ]
+    );
+
+    if (!result.rows[0]) {
+      throw new Error("Truck not found.");
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new Error(
+        "Another truck already uses this plate number."
+      );
+    }
+
+    throw error;
+  }
+}

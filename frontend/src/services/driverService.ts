@@ -15,6 +15,9 @@ export interface Driver {
   chemical_certificate_expiry_date?: string | null;
   chemical_certificate_image?: string | null;
 
+  joining_date?: string | null;
+  leaving_date?: string | null;
+
   is_active: boolean;
   active_trip_id?: string | null;
   active_trip_code?: string | null;
@@ -33,6 +36,9 @@ export interface CreateDriverInput {
   chemical_certificate_number?: string;
   chemical_certificate_expiry_date?: string;
   chemical_certificate_image?: string;
+
+  joining_date?: string;
+  leaving_date?: string;
 }
 
 export async function listDrivers() {
@@ -42,5 +48,16 @@ export async function listDrivers() {
 
 export async function createDriver(data: CreateDriverInput) {
   const response = await api.post<Driver>("/drivers", data);
+  return response.data;
+}
+
+
+export type UpdateDriverInput = Partial<CreateDriverInput>;
+
+export async function updateDriver(
+  driverId: string,
+  data: UpdateDriverInput
+) {
+  const response = await api.patch<Driver>(`/drivers/${driverId}`, data);
   return response.data;
 }

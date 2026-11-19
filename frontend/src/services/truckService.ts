@@ -23,6 +23,8 @@ export interface Truck {
   active_trip_code?: string | null;
   active_trip_status?: string | null;
   can_change_status?: boolean;
+  assigned_trailer_id?: string | null;
+  assigned_driver_id?: string | null;
   created_at: string;
 }
 
@@ -60,5 +62,19 @@ export async function updateTruckStatus(
     { status }
   );
 
+  return response.data;
+}
+
+export interface UpdateTruckInput {
+  plate_number?: string;
+  truck_type?: string;
+  capacity?: string;
+}
+
+export async function updateTruck(
+  truckId: string,
+  data: UpdateTruckInput
+): Promise<Truck> {
+  const response = await api.patch<Truck>(`/trucks/${truckId}`, data);
   return response.data;
 }

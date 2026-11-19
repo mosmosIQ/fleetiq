@@ -35,35 +35,32 @@ export default function StatusBoardPage() {
   return (
     <div className="page">
       <h1>Status Board</h1>
-      <p>
-        Live overview of active trips, truck status, driver progress, and the
-        last update source. This page refreshes automatically every 15 seconds.
-      </p>
+      <p>Updates automatically every 15 seconds.</p>
 
       {error && (
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <p className="error">
           {error}
         </p>
       )}
 
       <div className="grid grid-4" style={{ marginBottom: 24 }}>
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Active Trips</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Active Trips</p>
           <h2>{activeTrips.length}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Delayed</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Delayed</p>
           <h2>{trips.filter((trip) => trip.status === "DELAYED").length}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Breakdowns</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Breakdowns</p>
           <h2>{trips.filter((trip) => trip.status === "BREAKDOWN").length}</h2>
         </div>
 
         <div className="card">
-          <p style={{ margin: 0, color: "#64748b" }}>Completed</p>
+          <p style={{ margin: 0, color: "var(--muted)" }}>Completed</p>
           <h2>{completedTrips.length}</h2>
         </div>
       </div>
@@ -130,24 +127,24 @@ export default function StatusBoardPage() {
 function StatusBadge({ status }: { status: string }) {
   const background =
     status === "DELAYED"
-      ? "#fef3c7"
+      ? "var(--warning-tint)"
       : status === "BREAKDOWN"
-      ? "#fee2e2"
+      ? "var(--danger-tint)"
       : status === "COMPLETED"
-      ? "#dcfce7"
+      ? "var(--success-tint)"
       : status === "ARRIVED"
-      ? "#e0f2fe"
+      ? "var(--info-tint)"
       : "#e5e7eb";
 
   const color =
     status === "DELAYED"
-      ? "#92400e"
+      ? "var(--warning)"
       : status === "BREAKDOWN"
-      ? "#991b1b"
+      ? "var(--danger)"
       : status === "COMPLETED"
-      ? "#166534"
+      ? "var(--success)"
       : status === "ARRIVED"
-      ? "#075985"
+      ? "var(--info)"
       : "#374151";
 
   return (
@@ -174,10 +171,10 @@ function formatStatus(status: string) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

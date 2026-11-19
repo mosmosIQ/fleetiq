@@ -57,3 +57,22 @@ export async function updateTrailerStatus(
     });
   }
 }
+
+export async function updateTrailer(req: Request, res: Response) {
+  try {
+    const trailer = await trailerService.updateTrailer(
+      req.user!.tenant_id!,
+      req.params.id,
+      req.body
+    );
+
+    res.json(trailer);
+  } catch (error) {
+    res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update trailer"
+    });
+  }
+}

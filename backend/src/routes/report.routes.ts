@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { getCompanyReport } from "../controllers/report.controller";
+import {
+  exportFleetAssignmentReport,
+  getCompanyReport,
+  getFleetAssignmentReport
+} from "../controllers/report.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { requireTenant } from "../middleware/tenant.middleware";
@@ -15,5 +19,7 @@ router.use(
 );
 
 router.get("/company", getCompanyReport);
+router.get("/fleet-assignments", getFleetAssignmentReport);
+router.get("/fleet-assignments/export", exportFleetAssignmentReport);
 
 export default router;
