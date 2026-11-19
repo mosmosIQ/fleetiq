@@ -18,3 +18,9 @@ export const createTruckSchema = z.object({
 export const updateTruckStatusSchema = z.object({
   status: manageableTruckStatusSchema
 });
+
+export const updateTruckSchema = z.object({
+  plate_number: z.string().trim().min(2).max(30).optional(),
+  truck_type: z.string().trim().max(100).optional(),
+  capacity: z.string().trim().max(100).optional()
+});

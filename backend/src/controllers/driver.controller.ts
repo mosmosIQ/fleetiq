@@ -36,3 +36,22 @@ export async function createDriver(req: Request, res: Response) {
     });
   }
 }
+
+export async function updateDriver(req: Request, res: Response) {
+  try {
+    const driver = await driverService.updateDriver(
+      req.user!.tenant_id!,
+      req.params.id,
+      req.body
+    );
+
+    res.json(driver);
+  } catch (error) {
+    res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update driver"
+    });
+  }
+}

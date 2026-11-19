@@ -1,4 +1,12 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Building2,
+  LayoutDashboard,
+  LogOut,
+  PlusCircle,
+} from "lucide-react";
+
+const ICON_SIZE = 18;
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
@@ -11,32 +19,37 @@ export default function SuperAdminLayout() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <h2>FleetIQ Admin</h2>
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-mark">FIQ</span>
+          FleetIQ Admin
+        </div>
 
         <NavLink to="/super-admin" end>
+          <LayoutDashboard size={ICON_SIZE} />
           Overview
         </NavLink>
-        <NavLink to="/super-admin/companies">
+
+        <NavLink to="/super-admin/companies" end>
+          <Building2 size={ICON_SIZE} />
           Companies
         </NavLink>
+
         <NavLink to="/super-admin/companies/new">
+          <PlusCircle size={ICON_SIZE} />
           Add Company
-        </NavLink>
-        <NavLink to="/super-admin/subscriptions">
-          Subscriptions
         </NavLink>
 
         <button
           type="button"
-          className="button button-danger"
+          className="sidebar-logout"
           onClick={handleLogout}
         >
-          Logout
+          <LogOut size={ICON_SIZE} />
+          Log out
         </button>
       </aside>
 
       <main className="main">
-        <div className="topbar">FleetIQ SaaS Owner Panel</div>
         <Outlet />
       </main>
     </div>

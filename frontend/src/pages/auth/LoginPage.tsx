@@ -79,11 +79,7 @@ export default function LoginPage() {
     <AuthLayout>
       <form className="login-card" onSubmit={handleLogin}>
         <div className="login-header">
-          <span className="login-eyebrow">Welcome back</span>
-          <h1>Sign in to your account</h1>
-          <p>
-            Access FleetIQ using your Super Admin or Company Admin account.
-          </p>
+          <h1>Sign in</h1>
         </div>
 
         {error && (
@@ -93,13 +89,12 @@ export default function LoginPage() {
         )}
 
         <div className="form-group">
-          <label>Email Address</label>
+          <label>Email</label>
           <input
             className="input"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="example@company.com"
             required
           />
         </div>
@@ -111,7 +106,6 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
             required
           />
         </div>

@@ -193,7 +193,6 @@ export default function RouteTemplatesPage() {
               value={name}
               maxLength={150}
               onChange={event => setName(event.target.value)}
-              placeholder="e.g. Dar es Salaam to destination"
               required
             />
           </div>
@@ -242,7 +241,7 @@ export default function RouteTemplatesPage() {
 
                 <button
                   type="button"
-                  className="button"
+                  className="button button-secondary"
                   disabled={index === 0}
                   onClick={() => moveCheckpoint(index, -1)}
                   title="Move up"
@@ -252,7 +251,7 @@ export default function RouteTemplatesPage() {
 
                 <button
                   type="button"
-                  className="button"
+                  className="button button-secondary"
                   disabled={index === checkpoints.length - 1}
                   onClick={() => moveCheckpoint(index, 1)}
                   title="Move down"
@@ -274,7 +273,7 @@ export default function RouteTemplatesPage() {
 
             <button
               type="button"
-              className="button"
+              className="button button-secondary"
               style={{ marginTop: 12 }}
               disabled={checkpoints.length >= 100}
               onClick={addCheckpoint}
@@ -295,7 +294,7 @@ export default function RouteTemplatesPage() {
             {editingId && (
               <button
                 type="button"
-                className="button"
+                className="button button-secondary"
                 onClick={resetForm}
               >
                 Cancel Editing
@@ -349,7 +348,7 @@ export default function RouteTemplatesPage() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button
                           type="button"
-                          className="button"
+                          className="button button-secondary"
                           disabled={!template.is_active}
                           onClick={() => startEditing(template)}
                         >

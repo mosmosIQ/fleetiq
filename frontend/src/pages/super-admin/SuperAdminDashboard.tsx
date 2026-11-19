@@ -34,7 +34,7 @@ export default function SuperAdminDashboard() {
   if (loading) {
     return (
       <div className="page">
-        <h1>Super Admin Overview</h1>
+        <h1>Overview</h1>
         <div className="card">Loading overview...</div>
       </div>
     );
@@ -43,8 +43,8 @@ export default function SuperAdminDashboard() {
   if (error || !overview) {
     return (
       <div className="page">
-        <h1>Super Admin Overview</h1>
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <h1>Overview</h1>
+        <p className="error">
           {error || "Overview not available."}
         </p>
       </div>
@@ -53,11 +53,7 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="page">
-      <h1>Super Admin Overview</h1>
-      <p>
-        SaaS owner dashboard showing customer companies, subscriptions, fleet
-        usage, and operational issues across the whole FleetIQ platform.
-      </p>
+      <h1>Overview</h1>
 
       <h2>Customer Companies</h2>
       <div className="grid grid-4" style={{ marginBottom: 24 }}>
@@ -188,17 +184,17 @@ export default function SuperAdminDashboard() {
 function StatusBadge({ status }: { status: string }) {
   const background =
     status === "ACTIVE"
-      ? "#dcfce7"
+      ? "var(--success-tint)"
       : status === "SUSPENDED"
-      ? "#fef3c7"
-      : "#fee2e2";
+      ? "var(--warning-tint)"
+      : "var(--danger-tint)";
 
   const color =
     status === "ACTIVE"
-      ? "#166534"
+      ? "var(--success)"
       : status === "SUSPENDED"
-      ? "#92400e"
-      : "#991b1b";
+      ? "var(--warning)"
+      : "var(--danger)";
 
   return (
     <span
@@ -220,10 +216,10 @@ function StatusBadge({ status }: { status: string }) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

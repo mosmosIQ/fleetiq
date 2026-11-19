@@ -68,7 +68,7 @@ export default function ChangePasswordCard() {
       </p>
 
       {error && (
-        <p style={{ color: "#dc2626", fontWeight: 700 }}>
+        <p style={{ color: "var(--danger)", fontWeight: 700 }}>
           {error}
         </p>
       )}

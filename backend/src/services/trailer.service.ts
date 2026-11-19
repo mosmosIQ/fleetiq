@@ -52,6 +52,7 @@ export async function createTrailer(
   input: {
     trailer_number: string;
     trailer_type?: string;
+    trailer_model?: string;
     status?: string;
   }
 ) {
@@ -67,15 +68,17 @@ export async function createTrailer(
       tenant_id,
       trailer_number,
       trailer_type,
+      trailer_model,
       status
     )
-    VALUES ($1, $2, $3, $4)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *
     `,
     [
       tenantId,
       input.trailer_number.trim(),
       input.trailer_type?.trim() || null,
+      input.trailer_model?.trim() || null,
       status
     ]
   );
@@ -144,4 +147,62 @@ export async function updateTrailerStatus(
   );
 
   return result.rows[0];
+}
+
+export async function updateTrailer(
+  tenantId: string,
+  trailerId: string,
+  input: {
+    trailer_number?: string;
+    trailer_type?: string;
+    trailer_model?: string;
+  }
+) {
+  const trailerNumber =
+    input.trailer_number !== undefined
+      ? input.trailer_number.trim()
+      : null;
+
+  if (trailerNumber !== null && trailerNumber.length < 2) {
+    throw new Error("A valid trailer number is required");
+  }
+
+  try {
+    const result = await db.query(
+      `
+      UPDATE trailers
+      SET
+        trailer_number = COALESCE($3, trailer_number),
+        trailer_type = CASE WHEN $4::boolean THEN $5 ELSE trailer_type END,
+        trailer_model = CASE WHEN $6::boolean THEN $7 ELSE trailer_model END,
+        updated_at = NOW()
+      WHERE id = $1
+        AND tenant_id = $2
+      RETURNING *
+      `,
+      [
+        trailerId,
+        tenantId,
+        trailerNumber,
+        input.trailer_type !== undefined,
+        input.trailer_type?.trim() || null,
+        input.trailer_model !== undefined,
+        input.trailer_model?.trim() || null
+      ]
+    );
+
+    if (!result.rows[0]) {
+      throw new Error("Trailer not found");
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw new Error(
+        "Another trailer already uses this trailer number"
+      );
+    }
+
+    throw error;
+  }
 }

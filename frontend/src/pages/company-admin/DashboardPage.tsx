@@ -38,7 +38,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="page">
-        <h1>Company Dashboard</h1>
+        <h1>Dashboard</h1>
         <div className="card">Loading dashboard...</div>
       </div>
     );
@@ -47,8 +47,8 @@ export default function DashboardPage() {
   if (error || !report) {
     return (
       <div className="page">
-        <h1>Company Dashboard</h1>
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <h1>Dashboard</h1>
+        <p className="error">
           {error || "Dashboard data not available."}
         </p>
       </div>
@@ -60,19 +60,16 @@ export default function DashboardPage() {
 
   return (
     <div className="page">
-      <h1>Company Dashboard</h1>
-      <p>
-        Live overview of fleet activity. This dashboard refreshes automatically
-        every 15 seconds.
-      </p>
+      <h1>Dashboard</h1>
+      <p>Updates automatically every 15 seconds.</p>
 
       {hasCriticalIssues && (
         <div
           className="card"
           style={{
             marginBottom: 24,
-            borderColor: "#f59e0b",
-            background: "#fffbeb"
+            borderColor: "var(--warning)",
+            background: "var(--warning-tint)"
           }}
         >
           <h3 style={{ marginTop: 0 }}>Attention Required</h3>
@@ -183,10 +180,10 @@ function formatStatus(status: string) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

@@ -3,14 +3,18 @@ import { Router } from "express";
 
 import {
   createDriver,
-  listDrivers
+  listDrivers,
+  updateDriver
 } from "../controllers/driver.controller";
 
 import { authMiddleware } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { requireTenant } from "../middleware/tenant.middleware";
 import { validateBody } from "../middleware/validate.middleware";
-import { createDriverSchema } from "../validators/driver.validator";
+import {
+  createDriverSchema,
+  updateDriverSchema
+} from "../validators/driver.validator";
 import { requireActiveTenant } from "../middleware/subscription.middleware";
 
 const router = Router();
@@ -28,6 +32,12 @@ router.post(
   "/",
   validateBody(createDriverSchema),
   createDriver
+);
+
+router.patch(
+  "/:id",
+  validateBody(updateDriverSchema),
+  updateDriver
 );
 
 export default router;

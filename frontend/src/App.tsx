@@ -6,17 +6,16 @@ import SignupPage from "./pages/auth/SignupPage";
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import CompaniesPage from "./pages/super-admin/CompaniesPage";
 import AddCompanyPage from "./pages/super-admin/AddCompanyPage";
-import SubscriptionsPage from "./pages/super-admin/SubscriptionsPage";
 
 import DashboardPage from "./pages/company-admin/DashboardPage";
-import TruckRegistryPage from "./pages/company-admin/TruckRegistryPage";
-import DriverProfilesPage from "./pages/company-admin/DriverProfilesPage";
+import FleetRegistryPage from "./pages/company-admin/FleetRegistryPage";
+import DriverDocumentsPage from "./pages/company-admin/DriverDocumentsPage";
+import TruckDocumentsPage from "./pages/company-admin/TruckDocumentsPage";
 import TripManagerPage from "./pages/company-admin/TripManagerPage";
 import StatusBoardPage from "./pages/company-admin/StatusBoardPage";
 import DocumentsPage from "./pages/company-admin/DocumentsPage";
 import NotificationsPage from "./pages/company-admin/NotificationsPage";
 import SettingsPage from "./pages/company-admin/SettingsPage";
-import TrailerRegistryPage from "./pages/company-admin/TrailerRegistryPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
@@ -42,7 +41,6 @@ export default function App() {
         <Route index element={<SuperAdminDashboard />} />
         <Route path="companies" element={<CompaniesPage />} />
         <Route path="companies/new" element={<AddCompanyPage />} />
-        <Route path="subscriptions" element={<SubscriptionsPage />} />
       </Route>
 
       <Route
@@ -54,9 +52,13 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="trucks" element={<TruckRegistryPage />} />
-        <Route path="trailers" element={<TrailerRegistryPage />} />
-        <Route path="drivers" element={<DriverProfilesPage />} />
+        <Route path="fleet" element={<FleetRegistryPage />} />
+        <Route path="documents/drivers" element={<DriverDocumentsPage />} />
+        <Route path="documents/trucks" element={<TruckDocumentsPage />} />
+        <Route path="driver-documents" element={<Navigate to="/company-admin/documents/drivers" replace />} />
+        <Route path="trucks" element={<Navigate to="/company-admin/fleet" replace />} />
+        <Route path="trailers" element={<Navigate to="/company-admin/fleet" replace />} />
+        <Route path="drivers" element={<Navigate to="/company-admin/fleet" replace />} />
         <Route path="trips" element={<TripManagerPage />} />
         <Route path="route-templates" element={<RouteTemplatesPage />} />
         <Route path="status-board" element={<StatusBoardPage />} />
