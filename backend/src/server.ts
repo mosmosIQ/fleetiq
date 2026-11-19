@@ -5,16 +5,16 @@ import { runDriverExpiryReminders } from "./services/driverExpiryReminder.servic
 
 async function checkDriverExpiryReminders() {
   try {
-    console.log("[Driver Expiry] Starting reminder check...");
+    console.log("[Expiry] Starting reminder check...");
 
     const result = await runDriverExpiryReminders();
 
-    console.log("[Driver Expiry] Check completed:", {
-      driversAndDocumentsDue: result.checked,
+    console.log("[Expiry] Check completed:", {
+      documentsDue: result.checked,
       notificationsCreated: result.created,
     });
   } catch (error) {
-    console.error("[Driver Expiry] Reminder check failed:", error);
+    console.error("[Expiry] Reminder check failed:", error);
   }
 }
 
@@ -24,8 +24,10 @@ app.listen(env.PORT, () => {
   // Run immediately when the backend starts.
   void checkDriverExpiryReminders();
 
-  // Repeat every 24 hours.
+  // Repeat every hour. A document is only reminded about once per day,
+  // so this simply makes sure each day's reminders are sent early in the
+  // day even if the server restarted or was asleep.
   setInterval(() => {
     void checkDriverExpiryReminders();
-  }, 24 * 60 * 60 * 1000);
+  }, 60 * 60 * 1000);
 });

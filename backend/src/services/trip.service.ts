@@ -63,6 +63,7 @@ export async function listTrips(tenantId: string) {
       b.loading_date,
       b.tons,
       b.release_date,
+      b.checkpoint_snapshot,
 
       latest_update.source AS last_update_source,
       latest_update.created_at AS last_update_at

@@ -1,40 +1,110 @@
-
 import { db } from "../config/db";
 import { createNotification } from "./notification.service";
 
 /**
- * Called when the API starts and every 24 hours.
- * Checks document expiries from today through the next 15 days.
+ * Reminders start this many days before a document expires and are then
+ * sent EVERY DAY (at most one per document per day) until the expiry date.
+ * e.g. 7 -> notifications on day 7, 6, 5, 4, 3, 2, 1 and on the expiry day.
+ */
+export const EXPIRY_REMINDER_DAYS = 7;
+
+// "Today" is calculated in the company's local time zone.
+const REMINDER_TIME_ZONE = "Africa/Dar_es_Salaam";
+
+/**
+ * Drivers whose leaving date has arrived become unavailable.
+ * (Setting a leaving date also does this immediately when it is saved.)
+ */
+export async function deactivateLeftDrivers() {
+  const result = await db.query(
+    `
+    UPDATE drivers
+    SET is_active = false,
+        updated_at = NOW()
+    WHERE is_active = true
+      AND leaving_date IS NOT NULL
+      AND leaving_date <= (NOW() AT TIME ZONE $1)::date
+    `,
+    [REMINDER_TIME_ZONE]
+  );
+
+  return result.rowCount ?? 0;
+}
+
+function formatDate(value: unknown) {
+  return new Date(`${String(value).slice(0, 10)}T00:00:00Z`).toLocaleDateString(
+    "en-GB",
+    { timeZone: "UTC" }
+  );
+}
+
+function whenText(daysLeft: number, expiry: string) {
+  if (daysLeft <= 0) return `expires TODAY (${expiry})`;
+  if (daysLeft === 1) return `expires tomorrow (${expiry}) - 1 day remaining`;
+  return `expires on ${expiry} (${daysLeft} days remaining)`;
+}
+
+/**
+ * Called when the API starts and then every hour. It is safe to run often:
+ * a document is only reminded about once per day.
  */
 export async function runDriverExpiryReminders() {
+  await deactivateLeftDrivers();
+
   const due = await db.query(
     `
+    WITH today AS (
+      SELECT (NOW() AT TIME ZONE $2)::date AS d
+    )
     SELECT
-      d.id AS driver_id,
+      'DRIVER'::varchar AS entity_type,
+      d.id AS entity_id,
       d.tenant_id,
-      d.full_name,
+      d.full_name AS label,
       'DRIVER_LICENSE'::varchar AS document_type,
-      d.license_expiry_date AS expiry_date
-    FROM drivers d
+      d.license_expiry_date AS expiry_date,
+      NULL::varchar AS reference_number,
+      (d.license_expiry_date - today.d) AS days_left,
+      today.d AS today
+    FROM drivers d, today
     WHERE d.is_active = true
-      AND d.license_expiry_date
-          BETWEEN CURRENT_DATE AND CURRENT_DATE + 15
+      AND d.license_expiry_date BETWEEN today.d AND today.d + $1::int
 
     UNION ALL
 
     SELECT
-      d.id AS driver_id,
+      'DRIVER',
+      d.id,
       d.tenant_id,
       d.full_name,
-      'CHEMICAL_CERTIFICATE'::varchar AS document_type,
-      d.chemical_certificate_expiry_date AS expiry_date
-    FROM drivers d
+      'CHEMICAL_CERTIFICATE',
+      d.chemical_certificate_expiry_date,
+      NULL,
+      (d.chemical_certificate_expiry_date - today.d),
+      today.d
+    FROM drivers d, today
     WHERE d.is_active = true
-      AND d.chemical_certificate_expiry_date
-          BETWEEN CURRENT_DATE AND CURRENT_DATE + 15
+      AND d.chemical_certificate_expiry_date BETWEEN today.d AND today.d + $1::int
+
+    UNION ALL
+
+    SELECT
+      'TRUCK',
+      t.id,
+      t.tenant_id,
+      t.plate_number,
+      'TRUCK_INSURANCE',
+      t.insurance_expiry_date,
+      t.insurance_number,
+      (t.insurance_expiry_date - today.d),
+      today.d
+    FROM trucks t, today
+    WHERE t.status <> 'INACTIVE'
+      AND t.insurance_expiry_date BETWEEN today.d AND today.d + $1::int
 
     ORDER BY expiry_date ASC
-    `
+    `,
+    [EXPIRY_REMINDER_DAYS, REMINDER_TIME_ZONE]
   );
 
   let created = 0;
@@ -42,71 +112,69 @@ export async function runDriverExpiryReminders() {
   for (const item of due.rows) {
     const reminder = await db.query(
       `
-      INSERT INTO driver_expiry_reminders (
+      INSERT INTO expiry_reminders (
         tenant_id,
-        driver_id,
+        entity_type,
+        entity_id,
         document_type,
-        expiry_date
+        expiry_date,
+        reminder_date
       )
-      VALUES ($1::uuid, $2::uuid, $3, $4::date)
+      VALUES ($1::uuid, $2, $3::uuid, $4, $5::date, $6::date)
       ON CONFLICT (
         tenant_id,
-        driver_id,
+        entity_type,
+        entity_id,
         document_type,
-        expiry_date
+        expiry_date,
+        reminder_date
       )
       DO NOTHING
       RETURNING id
       `,
       [
         item.tenant_id,
-        item.driver_id,
+        item.entity_type,
+        item.entity_id,
         item.document_type,
-        item.expiry_date
+        item.expiry_date,
+        item.today
       ]
     );
 
-    // Already reminded for this document and expiry date.
+    // Already reminded about this document today.
     if (!reminder.rowCount) {
       continue;
     }
 
-    const expiryDate = String(item.expiry_date).slice(0, 10);
+    const expiry = formatDate(item.expiry_date);
+    const daysLeft = Number(item.days_left);
 
-    const expiry = new Date(
-      `${expiryDate}T00:00:00Z`
-    ).toLocaleDateString("en-GB", {
-      timeZone: "UTC"
-    });
+    if (item.entity_type === "TRUCK") {
+      await createNotification({
+        tenantId: item.tenant_id,
+        title: "Truck insurance expiry reminder",
+        message:
+          `Truck ${item.label}'s insurance` +
+          (item.reference_number ? ` (No. ${item.reference_number})` : "") +
+          ` ${whenText(daysLeft, expiry)}. Please arrange renewal.`,
+        type: "TRUCK_DOCUMENT_EXPIRY"
+      });
+    } else {
+      const kind =
+        item.document_type === "DRIVER_LICENSE"
+          ? "driver's licence"
+          : "chemical certificate";
 
-    const kind =
-      item.document_type === "DRIVER_LICENSE"
-        ? "driver's licence"
-        : "chemical certificate";
-
-    const today = new Date()
-      .toISOString()
-      .slice(0, 10);
-
-    const daysLeft = Math.max(
-      0,
-      Math.ceil(
-        (
-          new Date(`${expiryDate}T00:00:00Z`).getTime() -
-          new Date(`${today}T00:00:00Z`).getTime()
-        ) / 86_400_000
-      )
-    );
-
-    await createNotification({
-      tenantId: item.tenant_id,
-      title: "Driver document expiry reminder",
-      message:
-        `${item.full_name}'s ${kind} expires on ${expiry} ` +
-        `(${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining). ` +
-        "Please arrange renewal.",
-      type: "DRIVER_DOCUMENT_EXPIRY"
-    });
+      await createNotification({
+        tenantId: item.tenant_id,
+        title: "Driver document expiry reminder",
+        message:
+          `${item.label}'s ${kind} ${whenText(daysLeft, expiry)}. ` +
+          "Please arrange renewal.",
+        type: "DRIVER_DOCUMENT_EXPIRY"
+      });
+    }
 
     created += 1;
   }

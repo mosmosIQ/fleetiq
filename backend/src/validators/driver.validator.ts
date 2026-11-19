@@ -30,7 +30,12 @@ export const createDriverSchema = z.object({
   chemical_certificate_number: optionalText(100),
   chemical_certificate_expiry_date: optionalDate,
 
+  joining_date: optionalDate,
+  leaving_date: optionalDate,
+
   chemical_certificate_image: documentImage("Chemical certificate image"),
   license_image: documentImage("Driver licence image"),
   passport_image: documentImage("Passport image")
 });
+
+export const updateDriverSchema = createDriverSchema.partial();

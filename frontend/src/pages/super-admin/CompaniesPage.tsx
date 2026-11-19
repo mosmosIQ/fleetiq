@@ -71,13 +71,10 @@ export default function CompaniesPage() {
   return (
     <div className="page">
       <h1>Customer Companies</h1>
-      <p>
-        Manage customer companies, subscription plans, and account status. Only
-        the Super Admin can change a customer&apos;s plan.
-      </p>
+      <p>Plans and account status. Only the Super Admin can change a customer&apos;s plan.</p>
 
       {error && (
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <p className="error">
           {error}
         </p>
       )}
@@ -167,8 +164,8 @@ function PlanBadge({ plan }: { plan: string }) {
         display: "inline-block",
         padding: "4px 10px",
         borderRadius: "999px",
-        background: plan === "PREMIUM" ? "#dcfce7" : "#e0f2fe",
-        color: plan === "PREMIUM" ? "#166534" : "#075985",
+        background: plan === "PREMIUM" ? "var(--success-tint)" : "var(--info-tint)",
+        color: plan === "PREMIUM" ? "var(--success)" : "var(--info)",
         fontWeight: 700,
         fontSize: 12
       }}
@@ -181,17 +178,17 @@ function PlanBadge({ plan }: { plan: string }) {
 function StatusBadge({ status }: { status: string }) {
   const background =
     status === "ACTIVE"
-      ? "#dcfce7"
+      ? "var(--success-tint)"
       : status === "SUSPENDED"
-      ? "#fef3c7"
-      : "#fee2e2";
+      ? "var(--warning-tint)"
+      : "var(--danger-tint)";
 
   const color =
     status === "ACTIVE"
-      ? "#166534"
+      ? "var(--success)"
       : status === "SUSPENDED"
-      ? "#92400e"
-      : "#991b1b";
+      ? "var(--warning)"
+      : "var(--danger)";
 
   return (
     <span
@@ -213,10 +210,10 @@ function StatusBadge({ status }: { status: string }) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

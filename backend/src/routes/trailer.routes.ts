@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   listTrailers,
   createTrailer,
+  updateTrailer,
   updateTrailerStatus
 } from "../controllers/trailer.controller";
 
@@ -14,6 +15,7 @@ import { validateBody } from "../middleware/validate.middleware";
 
 import {
   createTrailerSchema,
+  updateTrailerSchema,
   updateTrailerStatusSchema
 } from "../validators/trailer.validator";
 
@@ -32,6 +34,12 @@ router.post(
   "/",
   validateBody(createTrailerSchema),
   createTrailer
+);
+
+router.patch(
+  "/:id",
+  validateBody(updateTrailerSchema),
+  updateTrailer
 );
 
 router.patch(

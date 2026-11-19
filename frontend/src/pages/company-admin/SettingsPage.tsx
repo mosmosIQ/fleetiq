@@ -124,7 +124,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="page">
-        <h1>Company Settings</h1>
+        <h1>Settings</h1>
         <div className="card">Loading settings...</div>
       </div>
     );
@@ -133,8 +133,8 @@ export default function SettingsPage() {
   if (!subscription) {
     return (
       <div className="page">
-        <h1>Company Settings</h1>
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <h1>Settings</h1>
+        <p className="error">
           Subscription not found.
         </p>
       </div>
@@ -143,15 +143,11 @@ export default function SettingsPage() {
 
   return (
     <div className="page">
-      <h1>Company Settings</h1>
-      <p>
-        View subscription usage, update your password, and manage Company Admin
-        users. Standard and Premium have the same features; only limits are
-        different.
-      </p>
+      <h1>Settings</h1>
+      <p>Subscription usage, your password and company admin users.</p>
 
       {error && (
-        <p style={{ color: "red", fontWeight: 600 }}>
+        <p className="error">
           {error}
         </p>
       )}
@@ -212,7 +208,6 @@ export default function SettingsPage() {
               className="input"
               value={form.full_name}
               onChange={(e) => updateField("full_name", e.target.value)}
-              placeholder="Example: Office Manager"
               required
             />
           </div>
@@ -224,7 +219,6 @@ export default function SettingsPage() {
               type="email"
               value={form.email}
               onChange={(e) => updateField("email", e.target.value)}
-              placeholder="manager@company.com"
               required
             />
           </div>
@@ -275,7 +269,7 @@ export default function SettingsPage() {
                 <td style={tdStyle}>
                   {user.is_active ? (
                     <button
-                      className="button"
+                      className="button button-danger"
                       type="button"
                       onClick={() => handleDeactivate(user.id)}
                     >
@@ -283,7 +277,7 @@ export default function SettingsPage() {
                     </button>
                   ) : (
                     <button
-                      className="button"
+                      className="button button-secondary"
                       type="button"
                       onClick={() => handleReactivate(user.id)}
                     >
@@ -343,13 +337,13 @@ function UsageRow({
           style={{
             width: `${percentage}%`,
             height: "100%",
-            background: isFull ? "#dc2626" : "#1f6feb"
+            background: isFull ? "var(--danger)" : "var(--brand)"
           }}
         />
       </div>
 
       {isFull && (
-        <small style={{ color: "#dc2626", fontWeight: 600 }}>
+        <small style={{ color: "var(--danger)", fontWeight: 600 }}>
           Limit reached. Upgrade or request additional capacity.
         </small>
       )}
@@ -360,10 +354,10 @@ function UsageRow({
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px",
-  borderBottom: "1px solid #e5e9f2"
+  borderBottom: "1px solid var(--line)"
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px",
-  borderBottom: "1px solid #eef2f7"
+  borderBottom: "1px solid var(--line)"
 };

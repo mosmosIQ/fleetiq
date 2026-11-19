@@ -1,0 +1,1 @@
+ALTER TABLE trailers ADD COLUMN IF NOT EXISTS trailer_model VARCHAR(100);

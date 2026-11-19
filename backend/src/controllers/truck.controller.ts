@@ -61,3 +61,24 @@ export async function updateTruckStatus(
     });
   }
 }
+
+export async function updateTruck(req: Request, res: Response) {
+  try {
+    const truck = await truckService.updateTruck(
+      req.user!.tenant_id!,
+      req.params.id,
+      req.body
+    );
+
+    res.json(truck);
+  } catch (error) {
+    console.error("Failed to update truck:", error);
+
+    res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update truck."
+    });
+  }
+}

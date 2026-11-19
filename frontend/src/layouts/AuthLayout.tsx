@@ -11,21 +11,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           <h1>FleetIQ</h1>
 
-          <p>
-            Smart fleet management for trucks, drivers, trips, SMS updates, and live fleet status.
-          </p>
+          <p>Run your trucks, drivers and trips from one place.</p>
 
           <div className="auth-feature-list">
-            <div>Live trip status tracking</div>
-            <div>SMS driver updates</div>
-            <div>Truck and driver management</div>
-            <div>Standard and Premium SaaS plans</div>
+            <div>Live trip and checkpoint tracking</div>
+            <div>Driver updates by SMS</div>
+            <div>Truck, trailer and driver records</div>
           </div>
         </div>
 
-        <div className="auth-form-panel">
-          {children}
-        </div>
+        <div className="auth-form-panel">{children}</div>
       </div>
     </div>
   );
